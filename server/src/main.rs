@@ -37,9 +37,9 @@ use std::io::Read;
 
 #[get("/template")]
 fn template() -> Template {
-    let _ = Command::new("sh")
+    let _ = Command::new("node ")
         .current_dir(&Path::new("../client"))
-        .arg("./node_modules/.bin/elm-static-html")
+        .arg("./node_modules/elm-static-html/index.js")
         .arg("-c")
         .arg("elm-static-html.json")
         .output()
