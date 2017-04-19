@@ -13,29 +13,82 @@ mod api;
 
 extern crate postgres;
 extern crate serde_json;
-#[macro_use]
+// for !json macro
+// #[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
-
-use rocket_contrib::{JSON, Value};
-
 extern crate dotenv;
+use rocket_contrib::Template;
+use rocket::Request;
+
+#[derive(Serialize)]
+struct TemplateContext {
+    parent: String,
+    name: String,
+    content: String,
+    items: Vec<String>,
+}
+
+use std::process::Command;
+use std::path::Path;
+use std::fs::File;
+use std::io::Read;
+
+#[get("/template")]
+fn template() -> Template {
+    let _ = Command::new("sh")
+        .current_dir(&Path::new("../client"))
+        .arg("./node_modules/.bin/elm-static-html")
+        .arg("-c")
+        .arg("elm-static-html.json")
+        .output()
+        .expect("elm-static-html command failed to start");
+
+    let mut file = File::open("../client/dist/body-static.html").unwrap();
+
+    let mut contents: Vec<u8> = Vec::new();
+    // Returns amount of bytes read and append the result to the buffer
+    let result = file.read_to_end(&mut contents).unwrap();
+    println!("Read {} bytes", result);
+    let s = String::from_utf8_lossy(&*contents);
+    let context = TemplateContext {
+        parent: "index".to_owned(),
+        name: "Roman".to_owned(),
+        content: s.into_owned(),
+        items: vec!["One", "Two", "Three"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    };
+    Template::render("template", &context)
+}
 
 #[error(404)]
-fn not_found() -> JSON<Value> {
-    JSON(json!({
-        "status": "error",
-        "reason": "Resource was not found."
-    }))
+fn not_found(req: &Request) -> Template {
+    let mut map = std::collections::HashMap::new();
+    map.insert("path", req.uri().as_str());
+    Template::render("error/404", &map)
 }
 
 fn main() {
     println!("{:?}", dotenv!("data_server"));
     rocket::ignite()
-        .mount("/", routes![files::index, files::redirect_to_index, files::js, files::styles, files::styles_with_query, files::images])
+        .mount("/",
+               routes![template,
+                       files::index,
+                       files::redirect_to_index,
+                       files::js,
+                       files::styles,
+                       files::styles_with_query,
+                       files::images])
         .mount("/api",
-               routes![api::user_information, api::data_sets, api::data_set, api::data_set_category, api::data_sets_categories, api::data_sets_new])
+               routes![api::user_information,
+                       api::data_sets,
+                       api::data_set,
+                       api::data_set_category,
+                       api::data_sets_categories,
+                       api::data_sets_new])
         .catch(errors![not_found])
         .launch();
 }
