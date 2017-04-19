@@ -3,6 +3,7 @@
 #![allow(non_snake_case)]
 
 use postgres::{Connection, TlsMode};
+// use rocket_contrib::{JSON, Value};
 use rocket_contrib::JSON;
 use std::io::{Cursor, Read};
 use rocket::{Request, Outcome};
@@ -325,3 +326,11 @@ impl FromData for DataSetMultipart {
         Outcome::Success(v)
     }
 }
+
+// #[error(404)]
+// fn not_found() -> JSON<Value> {
+//     JSON(json!({
+//         "status": "error",
+//         "reason": "Resource was not found."
+//     }))
+// }

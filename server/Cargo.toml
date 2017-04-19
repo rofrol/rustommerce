@@ -6,7 +6,6 @@ authors = ["Roman Frołow"]
 [dependencies]
 rocket = "0.2.6"
 rocket_codegen = "0.2.6"
-rocket_contrib = "0.2.6"
 postgres = "0.14"
 serde = "0.9"
 serde_json = "0.9"
@@ -14,3 +13,8 @@ serde_derive = "0.9"
 multipart = "0.11.0"
 dotenv = "0.10.0"
 dotenv_macros = "0.10.0"
+
+[dependencies.rocket_contrib]
+version = "0.2.6"
+default-features = false
+features = ["json", "handlebars_templates"]

@@ -75,6 +75,10 @@ update msg model =
 -- VIEW
 
 
+initialView =
+    view <| Model [] HomeRoute <| Flags "" 0
+
+
 view : Model -> Html Msg
 view model =
     div []

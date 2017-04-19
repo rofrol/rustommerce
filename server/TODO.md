@@ -1,2 +1,3 @@
 - [ ] don't compile iron
 - [ ] get settings from env variable and as lower priority, from .env
+- [ ] don't return index.html for /favicon.ico and /api/badurl or even /hello/YourName
