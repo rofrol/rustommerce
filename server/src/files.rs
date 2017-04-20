@@ -8,6 +8,13 @@ fn index() -> io::Result<NamedFile> {
     NamedFile::open("../client/dist/index.html")
 }
 
+// http://stackoverflow.com/questions/2208933/how-do-i-force-a-favicon-refresh
+#[allow(unused_variables)]
+#[get("/favicon.ico?<v>")]
+fn favicon(v: V) -> io::Result<NamedFile> {
+    NamedFile::open("../client/dist/favicon.ico")
+}
+
 #[allow(unused_variables)]
 #[get("/<file..>", rank = 100)]
 fn redirect_to_index(file: PathBuf) -> io::Result<NamedFile> {
@@ -29,13 +36,13 @@ fn styles(file: PathBuf) -> io::Result<NamedFile> {
 // Remove this in the future.
 #[allow(dead_code)]
 #[derive(FromForm)]
-struct Task<'r> {
+struct V<'r> {
     v: &'r str,
 }
 
 #[allow(unused_variables)]
-#[get("/styles/<file..>?<task>")]
-fn styles_with_query(file: PathBuf, task: Task) -> io::Result<NamedFile> {
+#[get("/styles/<file..>?<v>")]
+fn styles_with_query(file: PathBuf, v: V) -> io::Result<NamedFile> {
     NamedFile::open(Path::new("../client/dist/styles").join(file))
 }
 
