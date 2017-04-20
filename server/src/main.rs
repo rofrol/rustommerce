@@ -35,8 +35,25 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
-#[get("/template")]
-fn template() -> Template {
+#[get("/template/<ssr>")]
+fn template(ssr: bool) -> Template {
+    println!("ssr {}", ssr);
+    let s: String = if ssr { getStr() } else { "".to_owned() };
+    // let s: String = getStr();
+    // s.dupa;
+    let context = TemplateContext {
+        parent: "index".to_owned(),
+        name: "Roman".to_owned(),
+        content: s.to_owned(),
+        items: vec!["One", "Two", "Three"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    };
+    Template::render("template", &context)
+}
+
+fn getStr() -> String {
     let _ = Command::new("node ")
         .current_dir(&Path::new("../client"))
         .arg("./node_modules/elm-static-html/index.js")
@@ -52,16 +69,7 @@ fn template() -> Template {
     let result = file.read_to_end(&mut contents).unwrap();
     println!("Read {} bytes", result);
     let s = String::from_utf8_lossy(&*contents);
-    let context = TemplateContext {
-        parent: "index".to_owned(),
-        name: "Roman".to_owned(),
-        content: s.into_owned(),
-        items: vec!["One", "Two", "Three"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect(),
-    };
-    Template::render("template", &context)
+    s.into_owned()
 }
 
 #[error(404)]

@@ -12,3 +12,4 @@ elm.js
 env.js
 
 .env
+.elm-static-html
