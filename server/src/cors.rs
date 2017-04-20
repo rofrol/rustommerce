@@ -85,10 +85,9 @@ impl<'r, R: Responder<'r>> Responder<'r> for CORS<R> {
             .raw_header("Access-Control-Allow-Origin", self.allow_origin)
             .finalize();
 
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
         if self.allow_credentials {
             response.set_raw_header("Access-Control-Allow-Credentials", "true");
-        } else {
-            response.set_raw_header("Access-Control-Allow-Credentials", "false");
         }
 
         if !self.expose_headers.is_empty() {
