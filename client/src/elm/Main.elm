@@ -78,7 +78,7 @@ update msg model =
 
 viewWithModel : Model -> Html Msg
 viewWithModel model =
-    div []
+    div [ id "content" ]
         [ h1 [] [ text "Pages" ]
         , div [] [ text <| "unix epoch time " ++ (toString model.flags.currentTime) ]
         , ul [] (List.map viewLink [ HomeRoute, SettingsRoute ])
