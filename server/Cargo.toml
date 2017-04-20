@@ -12,6 +12,7 @@ serde_json = "0.9"
 serde_derive = "0.9"
 dotenv = "0.10.0"
 dotenv_macros = "0.10.0"
+time = "0.1"
 
 [dependencies.rocket_contrib]
 version = "0.2.6"

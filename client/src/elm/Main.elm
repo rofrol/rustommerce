@@ -12,7 +12,7 @@ main : Program Flags Model Msg
 main =
     Navigation.programWithFlags UrlChange
         { init = init
-        , view = view
+        , view = viewWithModel
         , update = update
         , subscriptions = (\_ -> Sub.none)
         }
@@ -32,6 +32,7 @@ type alias Model =
 type alias Flags =
     { data_server : String
     , currentTime : Time
+    , dataModelString : String
     }
 
 
@@ -75,12 +76,8 @@ update msg model =
 -- VIEW
 
 
-initialView =
-    view <| Model [] HomeRoute <| Flags "" 0
-
-
-view : Model -> Html Msg
-view model =
+viewWithModel : Model -> Html Msg
+viewWithModel model =
     div []
         [ h1 [] [ text "Pages" ]
         , div [] [ text <| "unix epoch time " ++ (toString model.flags.currentTime) ]
