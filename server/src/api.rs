@@ -10,6 +10,8 @@ use rocket::{Request, Outcome};
 use rocket::data::{self, FromData};
 use self::multipart::server::Multipart;
 
+use cors::CORS;
+
 #[derive(Serialize, Deserialize)]
 struct UserInformation {
     userId: i32,
@@ -34,7 +36,7 @@ fn connection() -> Connection {
 
 
 #[get("/userInformation")]
-fn user_information() -> JSON<UserInformation> {
+fn user_information() -> CORS<JSON<UserInformation>> {
     let conn = connection();
     let user_id = 1;
     let rows = &conn.query(
@@ -56,13 +58,13 @@ fn user_information() -> JSON<UserInformation> {
         notifications.push(notification);
     }
 
-    JSON(UserInformation {
-             userId: row.get(0),
-             name: row.get(1),
-             surname: row.get(2),
-             magicUrl: row.get(3),
-             notifications: notifications,
-         })
+    CORS::any(JSON(UserInformation {
+                       userId: row.get(0),
+                       name: row.get(1),
+                       surname: row.get(2),
+                       magicUrl: row.get(3),
+                       notifications: notifications,
+                   }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -72,7 +74,7 @@ struct DataSet {
 }
 
 #[get("/dataSets")]
-fn data_sets() -> JSON<Vec<DataSet>> {
+fn data_sets() -> CORS<JSON<Vec<DataSet>>> {
     let conn = connection();
     let mut data_sets = Vec::new();
 
@@ -87,7 +89,7 @@ fn data_sets() -> JSON<Vec<DataSet>> {
         println!("Found DataSet {}", &data_set.name);
         data_sets.push(data_set);
     }
-    JSON(data_sets)
+    CORS::any(JSON(data_sets))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -108,7 +110,7 @@ struct Comment {
 }
 
 #[get("/dataSets/<url>")]
-fn data_set(url: &str) -> JSON<DataSetWithComments> {
+fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
     let conn = connection();
     let url2 = "dataSets/".to_owned() + url;
     let rows = &conn.query("SELECT id, name FROM data_sets where url = $1", &[&url2])
@@ -132,11 +134,11 @@ fn data_set(url: &str) -> JSON<DataSetWithComments> {
         comments.push(comment);
     }
 
-    JSON(DataSetWithComments {
-             id: row.get(0),
-             name: row.get(1),
-             comments: comments,
-         })
+    CORS::any(JSON(DataSetWithComments {
+                       id: row.get(0),
+                       name: row.get(1),
+                       comments: comments,
+                   }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -152,7 +154,7 @@ struct DataSetShort {
 }
 
 #[get("/dataSetsCategories/<url>")]
-fn data_set_category(url: &str) -> JSON<DataSetShort> {
+fn data_set_category(url: &str) -> CORS<JSON<DataSetShort>> {
     let conn = connection();
     let url2 = "dataSetsCategories/".to_owned() + url;
     let rows = &conn.query("select id from categories where \"contentUrl\" = $1",
@@ -168,16 +170,16 @@ fn data_set_category(url: &str) -> JSON<DataSetShort> {
              .unwrap();
     let dataSetShortRow = dataSetShortRows.into_iter().next().unwrap();
 
-    JSON(DataSetShort {
-             id: dataSetShortRow.get(0),
-             name: dataSetShortRow.get(1),
-             description: dataSetShortRow.get(2),
-             owner: dataSetShortRow.get(3),
-             releaseDate: dataSetShortRow.get(4),
-             rating: dataSetShortRow.get(5),
-             favourite: dataSetShortRow.get(6),
-             url: dataSetShortRow.get(7),
-         })
+    CORS::any(JSON(DataSetShort {
+                       id: dataSetShortRow.get(0),
+                       name: dataSetShortRow.get(1),
+                       description: dataSetShortRow.get(2),
+                       owner: dataSetShortRow.get(3),
+                       releaseDate: dataSetShortRow.get(4),
+                       rating: dataSetShortRow.get(5),
+                       favourite: dataSetShortRow.get(6),
+                       url: dataSetShortRow.get(7),
+                   }))
 }
 
 
@@ -201,7 +203,7 @@ struct Subcategory {
 }
 
 #[get("/dataSetsCategories")]
-fn data_sets_categories() -> JSON<Vec<Category>> {
+fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
     let conn = connection();
     let mut categories = Vec::new();
     for row in &conn.query("SELECT id, title, route, count, \"contentUrl\" FROM categories \
@@ -239,7 +241,7 @@ fn data_sets_categories() -> JSON<Vec<Category>> {
         println!("Found Category {}", &category.title);
         categories.push(category);
     }
-    JSON(categories)
+    CORS::any(JSON(categories))
 }
 
 
@@ -249,12 +251,12 @@ use std::fs::File;
 use std::io::{Write, BufWriter};
 
 #[post("/dataSets/new", data = "<upload>")]
-fn data_sets_new(upload: DataSetMultipart) -> String {
+fn data_sets_new(upload: DataSetMultipart) -> CORS<String> {
     let f = File::create("plik").expect("Unable to create file");
     let mut f = BufWriter::new(f);
     f.write_all(&*upload.metadata)
         .expect("Unable to write data");
-    format!("I read this: {:?}", upload)
+    CORS::any(format!("I read this: {:?}", upload))
 }
 
 #[derive(Debug)]
@@ -328,8 +330,8 @@ impl FromData for DataSetMultipart {
 }
 
 // #[error(404)]
-// fn not_found() -> JSON<Value> {
-//     JSON(json!({
+// fn not_found() ->  CORS<JSON<Value>> {
+//      CORS::any(JSON(json!({
 //         "status": "error",
 //         "reason": "Resource was not found."
 //     }))

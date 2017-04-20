@@ -10,6 +10,7 @@ extern crate rocket;
 
 mod files;
 mod api;
+mod cors;
 
 extern crate postgres;
 extern crate serde_json;
@@ -33,8 +34,10 @@ struct TemplateContext {
 use std::process::Command;
 use std::path::Path;
 
+use cors::CORS;
+
 #[get("/template/<ssr>")]
-fn template(ssr: bool) -> Template {
+fn template(ssr: bool) -> CORS<Template> {
     println!("ssr {}", ssr);
     let s2 = getStr();
     println!("s2 {}", s2);
@@ -48,7 +51,7 @@ fn template(ssr: bool) -> Template {
             .map(|s| s.to_string())
             .collect(),
     };
-    Template::render("template", &context)
+    CORS::any(Template::render("template", &context))
 }
 
 use std::fs;
@@ -102,10 +105,10 @@ view =
 }
 
 #[error(404)]
-fn not_found(req: &Request) -> Template {
+fn not_found(req: &Request) -> CORS<Template> {
     let mut map = std::collections::HashMap::new();
     map.insert("path", req.uri().as_str());
-    Template::render("error/404", &map)
+    CORS::any(Template::render("error/404", &map))
 }
 
 fn main() {
