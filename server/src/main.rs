@@ -76,6 +76,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![template,
+                       files::favicon,
                        files::index,
                        files::redirect_to_index,
                        files::js,
