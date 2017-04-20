@@ -32,15 +32,13 @@ struct TemplateContext {
 
 use std::process::Command;
 use std::path::Path;
-use std::fs::File;
-use std::io::Read;
 
 #[get("/template/<ssr>")]
 fn template(ssr: bool) -> Template {
     println!("ssr {}", ssr);
-    let s: String = if ssr { getStr() } else { "".to_owned() };
-    // let s: String = getStr();
-    // s.dupa;
+    let s2 = getStr();
+    println!("s2 {}", s2);
+    let s: String = if ssr { s2 } else { "".to_owned() };
     let context = TemplateContext {
         parent: "index".to_owned(),
         name: "Roman".to_owned(),
@@ -62,6 +60,7 @@ fn getStr() -> String {
     fs::copy("../client/src/elm/Main.elm",
              "../client/src/elm/Main.elm.bak")
             .expect("file not copied");
+    let stdout: Vec<u8>;
     {
         let mut main_file = OpenOptions::new()
             .append(true)
@@ -81,29 +80,25 @@ view =
             .write(str1.as_bytes())
             .expect("file content not saved");
 
-        let _ = Command::new("node ")
+        stdout = Command::new("node")
             .current_dir(&Path::new("../client"))
             .arg("./node_modules/elm-static-html/index.js")
             .arg("-f")
             .arg("src/elm/Main.elm")
-            .arg("--output")
-            .arg("../client/dist/body-static.html")
             .output()
-            .expect("elm-static-html command failed to start");
+            .expect("elm-static-html command failed to start")
+            .stdout;
+
 
     }
     fs::rename("../client/src/elm/Main.elm.bak",
                "../client/src/elm/Main.elm")
             .expect("file not renamed");
 
-    let mut file = File::open("../client/dist/body-static.html").expect("file not opened");
-
-    let mut contents: Vec<u8> = Vec::new();
-    // Returns amount of bytes read and append the result to the buffer
-    let result = file.read_to_end(&mut contents).expect("file not read");
-    println!("Read {} bytes", result);
-    let s = String::from_utf8_lossy(&*contents);
-    s.into_owned()
+    String::from_utf8_lossy(&*stdout)
+        .lines()
+        .skip_while(|x| x.find("id=\"content\"").is_none())
+        .collect()
 }
 
 #[error(404)]
