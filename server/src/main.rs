@@ -53,20 +53,54 @@ fn template(ssr: bool) -> Template {
     Template::render("template", &context)
 }
 
-fn getStr() -> String {
-    let _ = Command::new("node ")
-        .current_dir(&Path::new("../client"))
-        .arg("./node_modules/elm-static-html/index.js")
-        .arg("-c")
-        .arg("elm-static-html.json")
-        .output()
-        .expect("elm-static-html command failed to start");
+use std::fs;
+use std::io::prelude::*;
+use std::fs::OpenOptions;
+extern crate time;
 
-    let mut file = File::open("../client/dist/body-static.html").unwrap();
+fn getStr() -> String {
+    fs::copy("../client/src/elm/Main.elm",
+             "../client/src/elm/Main.elm.bak")
+            .expect("file not copied");
+    {
+        let mut main_file = OpenOptions::new()
+            .append(true)
+            .open("../client/src/elm/Main.elm")
+            .expect("file not opened");
+
+        let str1 = format!(r#"
+view : Html Msg
+view =
+    viewWithModel <|
+        Model [] HomeRoute <|
+            Flags "" {time} ""
+"#,
+                           time = time::get_time().sec);
+
+        main_file
+            .write(str1.as_bytes())
+            .expect("file content not saved");
+
+        let _ = Command::new("node ")
+            .current_dir(&Path::new("../client"))
+            .arg("./node_modules/elm-static-html/index.js")
+            .arg("-f")
+            .arg("src/elm/Main.elm")
+            .arg("--output")
+            .arg("../client/dist/body-static.html")
+            .output()
+            .expect("elm-static-html command failed to start");
+
+    }
+    fs::rename("../client/src/elm/Main.elm.bak",
+               "../client/src/elm/Main.elm")
+            .expect("file not renamed");
+
+    let mut file = File::open("../client/dist/body-static.html").expect("file not opened");
 
     let mut contents: Vec<u8> = Vec::new();
     // Returns amount of bytes read and append the result to the buffer
-    let result = file.read_to_end(&mut contents).unwrap();
+    let result = file.read_to_end(&mut contents).expect("file not read");
     println!("Read {} bytes", result);
     let s = String::from_utf8_lossy(&*contents);
     s.into_owned()

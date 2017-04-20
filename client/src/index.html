@@ -11,52 +11,14 @@
 </head>
 
 <body>
-  <div id="main">
-    <div>
-      <h1>
-        Pages
-      </h1>
-      <div>
-        unix epoch time 0
-      </div>
-      <ul>
-        <li>
-          <a href="/">
-                /
-            </a>
-        </li>
-        <li>
-          <a href="/settings">
-                /settings
-            </a>
-        </li>
-      </ul>
-      <ul>
-        <li>
-          <a href="/non_existing_link">
-                non existing link
-            </a>
-        </li>
-      </ul>
-      <div>
-        Home
-      </div>
-      <h1>
-        History
-      </h1>
-      <ul>
-      </ul>
-    </div>
-
-
-  </div>
+  <div id="main"></div>
   <script src="/js/elm.js"></script>
   <script src="/js/env.js"></script>
   <script>
     var node = document.getElementById('main');
     // https://github.com/elm-lang/core/issues/600#issuecomment-219186143
     node.innerHTML = "";
-    var app = Elm.Main.embed(node, Object.assign(env, { currentTime: Date.now() }));
+    var app = Elm.Main.embed(node, Object.assign(env, { currentTime: Date.now(), dataModelString: "" }));
   </script>
 </body>
 
