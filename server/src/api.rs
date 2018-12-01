@@ -3,14 +3,7 @@
 #![allow(non_snake_case)]
 
 use postgres::{Connection, TlsMode};
-// use rocket_contrib::{JSON, Value};
-use self::multipart::server::Multipart;
-use rocket::data::{self, FromData};
-use rocket::{Outcome, Request};
-use rocket_contrib::JSON;
 use std::io::{Cursor, Read};
-
-use cors::CORS;
 
 use std::env;
 
@@ -259,8 +252,6 @@ fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
     CORS::any(JSON(categories))
 }
 
-use rocket::Data;
-extern crate multipart;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
@@ -341,11 +332,3 @@ impl FromData for DataSetMultipart {
         Outcome::Success(v)
     }
 }
-
-// #[error(404)]
-// fn not_found() ->  CORS<JSON<Value>> {
-//      CORS::any(JSON(json!({
-//         "status": "error",
-//         "reason": "Resource was not found."
-//     }))
-// }
