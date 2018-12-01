@@ -4,13 +4,15 @@
 
 use postgres::{Connection, TlsMode};
 // use rocket_contrib::{JSON, Value};
+use self::multipart::server::Multipart;
+use rocket::data::{self, FromData};
+use rocket::{Outcome, Request};
 use rocket_contrib::JSON;
 use std::io::{Cursor, Read};
-use rocket::{Request, Outcome};
-use rocket::data::{self, FromData};
-use self::multipart::server::Multipart;
 
 use cors::CORS;
+
+use std::env;
 
 #[derive(Serialize, Deserialize)]
 struct UserInformation {
@@ -28,12 +30,15 @@ struct Notification {
 }
 
 fn connection() -> Connection {
-    Connection::connect("postgres://".to_owned() + dotenv!("PGUSER") + "@localhost/" +
-                        dotenv!("PGDATABASE"),
-                        TlsMode::None)
-            .unwrap()
+    Connection::connect(
+        "postgres://".to_owned()
+            + env::var("PGUSER").unwrap()
+            + "@localhost/"
+            + env::var("PGDATABASE").unwrap(),
+        TlsMode::None,
+    )
+    .unwrap()
 }
-
 
 #[get("/userInformation")]
 fn user_information() -> CORS<JSON<UserInformation>> {
@@ -59,12 +64,12 @@ fn user_information() -> CORS<JSON<UserInformation>> {
     }
 
     CORS::any(JSON(UserInformation {
-                       userId: row.get(0),
-                       name: row.get(1),
-                       surname: row.get(2),
-                       magicUrl: row.get(3),
-                       notifications: notifications,
-                   }))
+        userId: row.get(0),
+        name: row.get(1),
+        surname: row.get(2),
+        magicUrl: row.get(3),
+        notifications: notifications,
+    }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -78,8 +83,7 @@ fn data_sets() -> CORS<JSON<Vec<DataSet>>> {
     let conn = connection();
     let mut data_sets = Vec::new();
 
-    for row in &conn.query("SELECT id, name FROM data_sets", &[])
-                    .unwrap() {
+    for row in &conn.query("SELECT id, name FROM data_sets", &[]).unwrap() {
         let data_set = DataSet {
             id: row.get(0),
             name: row.get(1),
@@ -99,7 +103,6 @@ struct DataSetWithComments {
     comments: Vec<Comment>,
 }
 
-
 #[derive(Serialize, Deserialize)]
 struct Comment {
     id: i32,
@@ -113,17 +116,21 @@ struct Comment {
 fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
     let conn = connection();
     let url2 = "dataSets/".to_owned() + url;
-    let rows = &conn.query("SELECT id, name FROM data_sets where url = $1", &[&url2])
-                    .unwrap();
+    let rows = &conn
+        .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
+        .unwrap();
     let row = rows.into_iter().next().unwrap();
     let data_set_id: i32 = row.get(0);
 
     let mut comments = Vec::new();
-    for row in
-        &conn.query("select c.id, content, \"userName\", \"userPhotoUrl\", date from comments as c \
-         join data_sets as d on c.data_set_id = d.id and d.id = $1",
-                    &[&data_set_id])
-             .unwrap() {
+    for row in &conn
+        .query(
+            "select c.id, content, \"userName\", \"userPhotoUrl\", date from comments as c \
+             join data_sets as d on c.data_set_id = d.id and d.id = $1",
+            &[&data_set_id],
+        )
+        .unwrap()
+    {
         let comment = Comment {
             id: row.get(0),
             content: row.get(1),
@@ -135,10 +142,10 @@ fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
     }
 
     CORS::any(JSON(DataSetWithComments {
-                       id: row.get(0),
-                       name: row.get(1),
-                       comments: comments,
-                   }))
+        id: row.get(0),
+        name: row.get(1),
+        comments: comments,
+    }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -157,9 +164,12 @@ struct DataSetShort {
 fn data_set_category(url: &str) -> CORS<JSON<DataSetShort>> {
     let conn = connection();
     let url2 = "dataSetsCategories/".to_owned() + url;
-    let rows = &conn.query("select id from categories where \"contentUrl\" = $1",
-                           &[&url2])
-                    .unwrap();
+    let rows = &conn
+        .query(
+            "select id from categories where \"contentUrl\" = $1",
+            &[&url2],
+        )
+        .unwrap();
     let row = rows.into_iter().next().unwrap();
     let category_id: i32 = row.get(0);
 
@@ -171,17 +181,16 @@ fn data_set_category(url: &str) -> CORS<JSON<DataSetShort>> {
     let dataSetShortRow = dataSetShortRows.into_iter().next().unwrap();
 
     CORS::any(JSON(DataSetShort {
-                       id: dataSetShortRow.get(0),
-                       name: dataSetShortRow.get(1),
-                       description: dataSetShortRow.get(2),
-                       owner: dataSetShortRow.get(3),
-                       releaseDate: dataSetShortRow.get(4),
-                       rating: dataSetShortRow.get(5),
-                       favourite: dataSetShortRow.get(6),
-                       url: dataSetShortRow.get(7),
-                   }))
+        id: dataSetShortRow.get(0),
+        name: dataSetShortRow.get(1),
+        description: dataSetShortRow.get(2),
+        owner: dataSetShortRow.get(3),
+        releaseDate: dataSetShortRow.get(4),
+        rating: dataSetShortRow.get(5),
+        favourite: dataSetShortRow.get(6),
+        url: dataSetShortRow.get(7),
+    }))
 }
-
 
 #[derive(Serialize, Deserialize)]
 struct Category {
@@ -206,19 +215,25 @@ struct Subcategory {
 fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
     let conn = connection();
     let mut categories = Vec::new();
-    for row in &conn.query("SELECT id, title, route, count, \"contentUrl\" FROM categories \
-        where type = 'dataSet' and \"parentId\" is null",
-                           &[])
-                    .unwrap() {
-
+    for row in &conn
+        .query(
+            "SELECT id, title, route, count, \"contentUrl\" FROM categories \
+             where type = 'dataSet' and \"parentId\" is null",
+            &[],
+        )
+        .unwrap()
+    {
         let row_id: i32 = row.get(0);
 
         let mut subcategories = Vec::new();
-        for subcategoryRow in
-            &conn.query("SELECT id, title, route, count, \"contentUrl\" FROM categories \
-        where type = 'dataSet' and \"parentId\" = $1",
-                        &[&row_id])
-                 .unwrap() {
+        for subcategoryRow in &conn
+            .query(
+                "SELECT id, title, route, count, \"contentUrl\" FROM categories \
+                 where type = 'dataSet' and \"parentId\" = $1",
+                &[&row_id],
+            )
+            .unwrap()
+        {
             let subcategory = Subcategory {
                 id: subcategoryRow.get(0),
                 title: subcategoryRow.get(1),
@@ -244,11 +259,10 @@ fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
     CORS::any(JSON(categories))
 }
 
-
 use rocket::Data;
 extern crate multipart;
 use std::fs::File;
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 
 #[post("/dataSets/new", data = "<upload>")]
 fn data_sets_new(upload: DataSetMultipart) -> CORS<String> {
@@ -266,7 +280,6 @@ struct DataSetMultipart {
     categoryId: i32,
     metadata: Vec<u8>,
 }
-
 
 impl FromData for DataSetMultipart {
     type Error = ();
@@ -293,28 +306,28 @@ impl FromData for DataSetMultipart {
         let mut metadata = None;
 
         mp.foreach_entry(|mut entry| match entry.name.as_str() {
-                               "name" => {
+            "name" => {
                 let t = entry.data.as_text().expect("not text");
                 name = Some(t.into());
             }
-                               "description" => {
+            "description" => {
                 let t = entry.data.as_text().expect("not text");
                 description = Some(t.into());
             }
-                               "categoryId" => {
+            "categoryId" => {
                 let t = entry.data.as_text().expect("not text");
                 let n = t.parse().expect("not number");
                 categoryId = Some(n);
             }
-                               "metadata" => {
+            "metadata" => {
                 let mut d = Vec::new();
                 let f = entry.data.as_file().expect("not file");
                 f.read_to_end(&mut d).expect("can't read");
                 metadata = Some(d);
             }
-                               other => panic!("No known key {}", other),
-                           })
-            .expect("Unable to iterate");
+            other => panic!("No known key {}", other),
+        })
+        .expect("Unable to iterate");
 
         let v = DataSetMultipart {
             name: name.expect("name not set"),

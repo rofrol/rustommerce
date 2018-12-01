@@ -1,14 +1,8 @@
 ## Setup and start
 
-Read instructions from https://github.com/rofrol/rustup-helpers#windows-setup
+`cargo run`
 
-and then open `git bash` and run:
-
-`./setup.sh`
-
-If everything goes ok run:
-
-`./start.sh`
+If you have problems on Windows with `cargo run` hanging, you may use this from https://github.com/rofrol/rustup-helpers#windows-setup.
 
 ## Ubuntu
 
@@ -21,4 +15,4 @@ $ sudo apt install build-essential
 
 ## Debugging
 
-`RUST_BACKTRACE=1 ./start.sh`
+`RUST_BACKTRACE=1 cargo run`

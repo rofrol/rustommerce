@@ -4,22 +4,21 @@ version = "0.1.0"
 authors = ["Roman Frołow"]
 
 [dependencies]
-rocket = "0.2.6"
-rocket_codegen = "0.2.6"
-postgres = "0.14"
-serde = "0.9"
-serde_json = "0.9"
-serde_derive = "0.9"
-dotenv = "0.10.0"
-dotenv_macros = "0.10.0"
-time = "0.1"
+rocket = "0.3.17"
+rocket_codegen = "0.3.17"
+postgres = "0.15.2"
+serde = "1.0.80"
+serde_json = "1.0.33"
+serde_derive = "1.0.80"
+dotenv = "0.13.0"
+time = "0.1.40"
 
 [dependencies.rocket_contrib]
-version = "0.2.6"
+version = "0.3.17"
 default-features = false
 features = ["json", "handlebars_templates"]
 
 [dependencies.multipart]
-version = "0.11.0"
+version = "0.15.4"
 default-features = false
 features = ["server"]

@@ -1,16 +1,16 @@
+#![feature(proc_macro_hygiene, decl_macro)]
 #![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
-#![plugin(dotenv_macros)]
-
 // http://stackoverflow.com/questions/25877285/how-to-disable-unused-code-warnings-in-rust
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
+#[macro_use]
 extern crate rocket;
 
-mod files;
 mod api;
 mod cors;
+mod files;
 
 extern crate postgres;
 extern crate serde_json;
@@ -19,9 +19,12 @@ extern crate serde_json;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
+
 extern crate dotenv;
-use rocket_contrib::Template;
+use std::env;
+
 use rocket::Request;
+use rocket_contrib::Template;
 
 #[derive(Serialize)]
 struct TemplateContext {
@@ -31,8 +34,8 @@ struct TemplateContext {
     items: Vec<String>,
 }
 
-use std::process::Command;
 use std::path::Path;
+use std::process::Command;
 
 use cors::CORS;
 
@@ -55,14 +58,16 @@ fn template(ssr: bool) -> CORS<Template> {
 }
 
 use std::fs;
-use std::io::prelude::*;
 use std::fs::OpenOptions;
+use std::io::prelude::*;
 extern crate time;
 
 fn getStr() -> String {
-    fs::copy("../client/src/elm/Main.elm",
-             "../client/src/elm/Main.elm.bak")
-            .expect("file not copied");
+    fs::copy(
+        "../client/src/elm/Main.elm",
+        "../client/src/elm/Main.elm.bak",
+    )
+    .expect("file not copied");
     let stdout: Vec<u8>;
     {
         let mut main_file = OpenOptions::new()
@@ -70,14 +75,16 @@ fn getStr() -> String {
             .open("../client/src/elm/Main.elm")
             .expect("file not opened");
 
-        let str1 = format!(r#"
+        let str1 = format!(
+            r#"
 view : Html Msg
 view =
     viewWithModel <|
         Model [] HomeRoute <|
             Flags "" {time} ""
 "#,
-                           time = time::get_time().sec);
+            time = time::get_time().sec
+        );
 
         main_file
             .write(str1.as_bytes())
@@ -91,12 +98,12 @@ view =
             .output()
             .expect("elm-static-html command failed to start")
             .stdout;
-
-
     }
-    fs::rename("../client/src/elm/Main.elm.bak",
-               "../client/src/elm/Main.elm")
-            .expect("file not renamed");
+    fs::rename(
+        "../client/src/elm/Main.elm.bak",
+        "../client/src/elm/Main.elm",
+    )
+    .expect("file not renamed");
 
     String::from_utf8_lossy(&*stdout)
         .lines()
@@ -112,24 +119,34 @@ fn not_found(req: &Request) -> CORS<Template> {
 }
 
 fn main() {
-    println!("{:?}", dotenv!("data_server"));
+    dotenv().ok();
+
+    println!("{:?}", env::var("data_server").unwrap());
     rocket::ignite()
-        .mount("/",
-               routes![template,
-                       files::favicon,
-                       files::index,
-                       files::redirect_to_index,
-                       files::js,
-                       files::styles,
-                       files::styles_with_query,
-                       files::images])
-        .mount("/api",
-               routes![api::user_information,
-                       api::data_sets,
-                       api::data_set,
-                       api::data_set_category,
-                       api::data_sets_categories,
-                       api::data_sets_new])
+        .mount(
+            "/",
+            routes![
+                template,
+                files::favicon,
+                files::index,
+                files::redirect_to_index,
+                files::js,
+                files::styles,
+                files::styles_with_query,
+                files::images
+            ],
+        )
+        .mount(
+            "/api",
+            routes![
+                api::user_information,
+                api::data_sets,
+                api::data_set,
+                api::data_set_category,
+                api::data_sets_categories,
+                api::data_sets_new
+            ],
+        )
         .catch(errors![not_found])
         .launch();
 }
