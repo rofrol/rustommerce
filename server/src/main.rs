@@ -33,8 +33,8 @@ fn index(_req: &HttpRequest) -> &'static str {
     "Hello world"
 }
 
-// use std::path::Path;
-// use std::process::Command;
+use std::path::Path;
+use std::process::Command;
 
 // #[get("/template/<ssr>")]
 // fn template(ssr: bool) -> CORS<Template> {
@@ -54,59 +54,59 @@ fn index(_req: &HttpRequest) -> &'static str {
 //     CORS::any(Template::render("template", &context))
 // }
 
-// use std::fs;
-// use std::fs::OpenOptions;
-// use std::io::prelude::*;
-// extern crate time;
+use std::fs;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+extern crate time;
 
-// fn getStr() -> String {
-//     fs::copy(
-//         "../client/src/elm/Main.elm",
-//         "../client/src/elm/Main.elm.bak",
-//     )
-//     .expect("file not copied");
-//     let stdout: Vec<u8>;
-//     {
-//         let mut main_file = OpenOptions::new()
-//             .append(true)
-//             .open("../client/src/elm/Main.elm")
-//             .expect("file not opened");
+fn getStr() -> String {
+    fs::copy(
+        "../client/src/elm/Main.elm",
+        "../client/src/elm/Main.elm.bak",
+    )
+    .expect("file not copied");
+    let stdout: Vec<u8>;
+    {
+        let mut main_file = OpenOptions::new()
+            .append(true)
+            .open("../client/src/elm/Main.elm")
+            .expect("file not opened");
 
-//         let str1 = format!(
-//             r#"
-// view : Html Msg
-// view =
-//     viewWithModel <|
-//         Model [] HomeRoute <|
-//             Flags "" {time} ""
-// "#,
-//             time = time::get_time().sec
-//         );
+        let str1 = format!(
+            r#"
+view : Html Msg
+view =
+    viewWithModel <|
+        Model [] HomeRoute <|
+            Flags "" {time} ""
+"#,
+            time = time::get_time().sec
+        );
 
-//         main_file
-//             .write(str1.as_bytes())
-//             .expect("file content not saved");
+        main_file
+            .write(str1.as_bytes())
+            .expect("file content not saved");
 
-//         stdout = Command::new("node")
-//             .current_dir(&Path::new("../client"))
-//             .arg("./node_modules/elm-static-html/index.js")
-//             .arg("-f")
-//             .arg("src/elm/Main.elm")
-//             .output()
-//             .expect("elm-static-html command failed to start")
-//             .stdout;
-//     }
-//     fs::rename(
-//         "../client/src/elm/Main.elm.bak",
-//         "../client/src/elm/Main.elm",
-//     )
-//     .expect("file not renamed");
+        stdout = Command::new("node")
+            .current_dir(&Path::new("../client"))
+            .arg("./node_modules/elm-static-html/index.js")
+            .arg("-f")
+            .arg("src/elm/Main.elm")
+            .output()
+            .expect("elm-static-html command failed to start")
+            .stdout;
+    }
+    fs::rename(
+        "../client/src/elm/Main.elm.bak",
+        "../client/src/elm/Main.elm",
+    )
+    .expect("file not renamed");
 
-//     String::from_utf8_lossy(&*stdout)
-//         .lines()
-//         .skip_while(|x| x.find("id=\"content\"").is_none())
-//         .collect()
-// }
+    String::from_utf8_lossy(&*stdout)
+        .lines()
+        .skip_while(|x| x.find("id=\"content\"").is_none())
+        .collect()
+}
 
 // #[error(404)]
 // fn not_found(req: &Request) -> CORS<Template> {
