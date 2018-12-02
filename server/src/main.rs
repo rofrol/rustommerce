@@ -19,7 +19,7 @@ extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
-use actix_web::{middleware, server, App, HttpRequest};
+use actix_web::{middleware, server, App, FromRequest, HttpRequest, Path};
 
 #[derive(Serialize)]
 struct TemplateContext {
@@ -33,26 +33,31 @@ fn index(_req: &HttpRequest) -> &'static str {
     "Hello world"
 }
 
-use std::path::Path;
+use std::path;
 use std::process::Command;
 
-// #[get("/template/<ssr>")]
-// fn template(ssr: bool) -> CORS<Template> {
-//     println!("ssr {}", ssr);
-//     let s2 = getStr();
-//     println!("s2 {}", s2);
-//     let s: String = if ssr { s2 } else { "".to_owned() };
-//     let context = TemplateContext {
-//         parent: "index".to_owned(),
-//         name: "Roman".to_owned(),
-//         content: s.to_owned(),
-//         items: vec!["One", "Two", "Three"]
-//             .iter()
-//             .map(|s| s.to_string())
-//             .collect(),
-//     };
-//     CORS::any(Template::render("template", &context))
-// }
+#[derive(Deserialize)]
+struct TemplateParams {
+    ssr: bool,
+}
+
+fn template(req: &HttpRequest) -> String {
+    let params = actix_web::Path::<TemplateParams>::extract(req).unwrap();
+    format!("ssr {}", params.ssr)
+    // let s2 = getStr();
+    // println!("s2 {}", s2);
+    // let s: String = if ssr { s2 } else { "".to_owned() };
+    // let context = TemplateContext {
+    //     parent: "index".to_owned(),
+    //     name: "Roman".to_owned(),
+    //     content: s.to_owned(),
+    //     items: vec!["One", "Two", "Three"]
+    //         .iter()
+    //         .map(|s| s.to_string())
+    //         .collect(),
+    // };
+    // CORS::any(Template::render("template", &context))
+}
 
 use std::fs;
 use std::fs::OpenOptions;
@@ -88,7 +93,7 @@ view =
             .expect("file content not saved");
 
         stdout = Command::new("node")
-            .current_dir(&Path::new("../client"))
+            .current_dir(&path::Path::new("../client"))
             .arg("./node_modules/elm-static-html/index.js")
             .arg("-f")
             .arg("src/elm/Main.elm")
@@ -125,6 +130,7 @@ fn main() {
         App::new()
             .middleware(middleware::Logger::default())
             .resource("/", |r| r.f(index))
+            .resource("/template/{ssr}", |r| r.f(template))
     })
     .bind("127.0.0.1:8080")
     .unwrap()
