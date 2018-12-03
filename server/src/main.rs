@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 // http://stackoverflow.com/questions/25877285/how-to-disable-unused-code-warnings-in-rust
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
@@ -21,6 +22,13 @@ use std::env;
 
 use actix_web::{middleware, server, App, FromRequest, HttpRequest, Path};
 
+extern crate typed_html;
+extern crate typed_html_macros;
+
+use typed_html::elements::FlowContent;
+use typed_html::types::{LinkType, Metadata};
+use typed_html::{dom::DOMTree, html, text, OutputType};
+
 #[derive(Serialize)]
 struct TemplateContext {
     parent: String,
@@ -43,20 +51,53 @@ struct TemplateParams {
 
 fn template(req: &HttpRequest) -> String {
     let params = actix_web::Path::<TemplateParams>::extract(req).unwrap();
-    format!("ssr {}", params.ssr)
-    // let s2 = getStr();
-    // println!("s2 {}", s2);
-    // let s: String = if ssr { s2 } else { "".to_owned() };
-    // let context = TemplateContext {
-    //     parent: "index".to_owned(),
-    //     name: "Roman".to_owned(),
-    //     content: s.to_owned(),
-    //     items: vec!["One", "Two", "Three"]
-    //         .iter()
-    //         .map(|s| s.to_string())
-    //         .collect(),
-    // };
-    // CORS::any(Template::render("template", &context))
+    println!("ssr {}", params.ssr);
+    let ssr = params.ssr;
+    let s2 = getStr();
+    println!("s2 {}", &s2);
+    let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
+    let context = TemplateContext {
+        parent: "index".to_owned(),
+        name: "Roman".to_owned(),
+        content: s.to_owned(),
+        items: vec!["One", "Two", "Three"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    };
+
+    let mut doc: DOMTree<String> = html!(
+        <html>
+            <head>
+                <title>"Hello Kitty"</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="icon" href="/favicon.ico?v=1" />
+                <link href="/styles/normalize.css" rel="stylesheet" type="text/css" media="all" />
+                <link href="/styles/style.css" rel="stylesheet" type="text/css" media="all" />
+                <base href="/"></base>
+                <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
+            </head>
+            <body>
+                <h1>"Hello Kitty"</h1>
+                <p class="official">
+                    "She is not a cat. She is a human girl."
+                </p>
+                { (0..3).map(|_| html!(
+                    <p class="emphasis">
+                        "Her name is Kitty White."
+                    </p>
+                )) }
+                <p class="citation-needed">
+                    "We still don't know how she eats."
+                </p>
+            </body>
+        </html>
+    );
+    let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
+
+    println!("doc_str: {}", doc_str);
+    doc_str
 }
 
 use std::fs;
