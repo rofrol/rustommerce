@@ -83,11 +83,15 @@ fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::E
                     "We still don't know how she eats."
                 </p>
                 <h1>"Hello Kitty"</h1>
+                "DYNAMIC_CONTENT"
             </div>
         ),
         context,
     );
-    let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
+    let mut doc_str = "<!doctype html>".to_owned() + &doc.to_string();
+
+    // https://users.rust-lang.org/t/how-to-create-a-macro-from-dynamic-content/5079
+    doc_str = doc_str.replacen("DYNAMIC_CONTENT", &s2, 1);
 
     result(Ok(HttpResponse::Ok()
         .content_type("text/html")
