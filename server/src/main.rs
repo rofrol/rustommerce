@@ -98,7 +98,8 @@ fn doc<T: OutputType + 'static>(
     tree: Box<dyn FlowContent<T>>,
     context: TemplateContext,
 ) -> DOMTree<T> {
-    println!("context: {:?}", context);
+    println!("context.name: {:?}", context.name);
+    let TemplateContext { name, items, .. } = context;
     html!(
         <html>
             <head>
@@ -112,14 +113,14 @@ fn doc<T: OutputType + 'static>(
                 <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
             </head>
             <body>
-                // <h1>{println!("Hi {}", &context.name)}</h1>
+                <h1>{text!("{}", name)}</h1>
                 <h3>"Here are your items:"</h3>
                 <ul>
-                   // {
-                   //  context.items.iter().map(|item| html!(
-                   //        <li>{item}</li>
-                   //  ))
-                   // }
+                   {
+                    items.iter().map(|item| html!(
+                          <li>{text!("{}", item)}</li>
+                    ))
+                   }
                 </ul>
                 { tree }
                 <p>r#"Try going to <a href="/hello/YourName">/hello/YourName</a>"#</p>
