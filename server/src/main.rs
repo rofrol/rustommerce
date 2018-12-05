@@ -20,7 +20,10 @@ extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
-use actix_web::{middleware, server, App, FromRequest, HttpRequest};
+use actix_web::{http::Method, middleware, server, App, FromRequest, HttpRequest, HttpResponse};
+
+extern crate futures;
+use futures::future::{result, FutureResult};
 
 extern crate typed_html;
 extern crate typed_html_macros;
@@ -28,8 +31,6 @@ extern crate typed_html_macros;
 use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
 use typed_html::{dom::DOMTree, html, text, OutputType};
-
-struct Html(DOMTree<String>);
 
 #[derive(Serialize, Debug)]
 struct TemplateContext {
@@ -51,12 +52,10 @@ struct TemplateParams {
     ssr: bool,
 }
 
-fn template(req: &HttpRequest) -> String {
+fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let params = actix_web::Path::<TemplateParams>::extract(req).unwrap();
-    println!("ssr {}", params.ssr);
     let ssr = params.ssr;
     let s2 = getStr();
-    println!("s2 {}", &s2);
     let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
     let context = TemplateContext {
         parent: "index".to_owned(),
@@ -68,7 +67,7 @@ fn template(req: &HttpRequest) -> String {
             .collect(),
     };
 
-    let mut doc: DOMTree<String> = doc(
+    let doc: DOMTree<String> = doc(
         html!(
             <div>
                 <h1>"Hello Kitty"</h1>
@@ -90,15 +89,15 @@ fn template(req: &HttpRequest) -> String {
     );
     let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
 
-    println!("doc_str: {}", doc_str);
-    doc_str
+    result(Ok(HttpResponse::Ok()
+        .content_type("text/html")
+        .body(doc_str)))
 }
 
 fn doc<T: OutputType + 'static>(
     tree: Box<dyn FlowContent<T>>,
     context: TemplateContext,
 ) -> DOMTree<T> {
-    println!("context.name: {:?}", context.name);
     let TemplateContext { name, items, .. } = context;
     html!(
         <html>
@@ -123,7 +122,7 @@ fn doc<T: OutputType + 'static>(
                    }
                 </ul>
                 { tree }
-                <p>r#"Try going to <a href="/hello/YourName">/hello/YourName</a>"#</p>
+                <p>"Try going to "<a href="/hello/YourName">"/hello/YourName"</a></p>
             </body>
         </html>
     )
@@ -200,7 +199,7 @@ fn main() {
         App::new()
             .middleware(middleware::Logger::default())
             .resource("/", |r| r.f(index))
-            .resource("/template/{ssr}", |r| r.f(template))
+            .resource("/template/{ssr}", |r| r.method(Method::GET).a(template))
     })
     .bind("127.0.0.1:8080")
     .unwrap()
