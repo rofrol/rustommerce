@@ -3,7 +3,7 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
-// mod api;
+mod api;
 // mod cors;
 // mod files;
 
@@ -204,6 +204,9 @@ fn main() {
             .middleware(middleware::Logger::default())
             .resource("/", |r| r.f(index))
             .resource("/template/{ssr}", |r| r.method(Method::GET).a(template))
+            .resource("/userInformation", |r| {
+                r.method(Method::GET).a(api::user_information)
+            })
     })
     .bind("127.0.0.1:8080")
     .unwrap()

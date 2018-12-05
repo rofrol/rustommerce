@@ -3,9 +3,11 @@
 #![allow(non_snake_case)]
 
 use postgres::{Connection, TlsMode};
-use std::io::{Cursor, Read};
 
 use std::env;
+
+use actix_web::{HttpRequest, HttpResponse};
+use futures::future::{result, FutureResult};
 
 #[derive(Serialize, Deserialize)]
 struct UserInformation {
@@ -23,18 +25,23 @@ struct Notification {
 }
 
 fn connection() -> Connection {
+    let s = "postgres://".to_owned()
+        + &env::var("PGUSER").unwrap()
+        + "@localhost/"
+        + &env::var("PGDATABASE").unwrap();
+    println!("s: {}", s);
+
     Connection::connect(
         "postgres://".to_owned()
-            + env::var("PGUSER").unwrap()
+            + &env::var("PGUSER").unwrap()
             + "@localhost/"
-            + env::var("PGDATABASE").unwrap(),
+            + &env::var("PGDATABASE").unwrap(),
         TlsMode::None,
     )
     .unwrap()
 }
 
-#[get("/userInformation")]
-fn user_information() -> CORS<JSON<UserInformation>> {
+pub fn user_information(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
     let user_id = 1;
     let rows = &conn.query(
@@ -56,15 +63,16 @@ fn user_information() -> CORS<JSON<UserInformation>> {
         notifications.push(notification);
     }
 
-    CORS::any(JSON(UserInformation {
+    let s = UserInformation {
         userId: row.get(0),
         name: row.get(1),
         surname: row.get(2),
         magicUrl: row.get(3),
         notifications: notifications,
-    }))
+    };
+    result(Ok(HttpResponse::Ok().json(s)))
 }
-
+/*
 #[derive(Serialize, Deserialize)]
 struct DataSet {
     id: i32,
@@ -272,6 +280,8 @@ struct DataSetMultipart {
     metadata: Vec<u8>,
 }
 
+use std::io::{Cursor, Read};
+
 impl FromData for DataSetMultipart {
     type Error = ();
 
@@ -332,3 +342,4 @@ impl FromData for DataSetMultipart {
         Outcome::Success(v)
     }
 }
+*/
