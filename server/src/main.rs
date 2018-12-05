@@ -152,12 +152,12 @@ fn getStr() -> String {
 
         let str1 = format!(
             r#"
-view : Html Msg
-view =
-    viewWithModel <|
-        Model [] HomeRoute <|
-            Flags "" {time} ""
-"#,
+            view : Html Msg
+            view =
+                viewWithModel <|
+                    Model [] HomeRoute <|
+                        Flags "" {time} ""
+            "#,
             time = time::get_time().sec
         );
 
