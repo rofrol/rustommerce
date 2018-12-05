@@ -20,16 +20,18 @@ extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
-use actix_web::{middleware, server, App, FromRequest, HttpRequest, Path};
+use actix_web::{middleware, server, App, FromRequest, HttpRequest};
 
 extern crate typed_html;
 extern crate typed_html_macros;
 
 use typed_html::elements::FlowContent;
-use typed_html::types::{LinkType, Metadata};
+use typed_html::types::Metadata;
 use typed_html::{dom::DOMTree, html, text, OutputType};
 
-#[derive(Serialize)]
+struct Html(DOMTree<String>);
+
+#[derive(Serialize, Debug)]
 struct TemplateContext {
     parent: String,
     name: String,
@@ -66,19 +68,9 @@ fn template(req: &HttpRequest) -> String {
             .collect(),
     };
 
-    let mut doc: DOMTree<String> = html!(
-        <html>
-            <head>
-                <title>"Hello Kitty"</title>
-                <meta charset="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="icon" href="/favicon.ico?v=1" />
-                <link href="/styles/normalize.css" rel="stylesheet" type="text/css" media="all" />
-                <link href="/styles/style.css" rel="stylesheet" type="text/css" media="all" />
-                <base href="/"></base>
-                <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
-            </head>
-            <body>
+    let mut doc: DOMTree<String> = doc(
+        html!(
+            <div>
                 <h1>"Hello Kitty"</h1>
                 <p class="official">
                     "She is not a cat. She is a human girl."
@@ -91,13 +83,49 @@ fn template(req: &HttpRequest) -> String {
                 <p class="citation-needed">
                     "We still don't know how she eats."
                 </p>
-            </body>
-        </html>
+                <h1>"Hello Kitty"</h1>
+            </div>
+        ),
+        context,
     );
     let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
 
     println!("doc_str: {}", doc_str);
     doc_str
+}
+
+fn doc<T: OutputType + 'static>(
+    tree: Box<dyn FlowContent<T>>,
+    context: TemplateContext,
+) -> DOMTree<T> {
+    println!("context: {:?}", context);
+    html!(
+        <html>
+            <head>
+                <title>"Hello Kitty"</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="icon" href="/favicon.ico?v=1" />
+                <link href="/styles/normalize.css" rel="stylesheet" type="text/css" media="all" />
+                <link href="/styles/style.css" rel="stylesheet" type="text/css" media="all" />
+                <base href="/"></base>
+                <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
+            </head>
+            <body>
+                // <h1>{println!("Hi {}", &context.name)}</h1>
+                <h3>"Here are your items:"</h3>
+                <ul>
+                   // {
+                   //  context.items.iter().map(|item| html!(
+                   //        <li>{item}</li>
+                   //  ))
+                   // }
+                </ul>
+                { tree }
+                <p>r#"Try going to <a href="/hello/YourName">/hello/YourName</a>"#</p>
+            </body>
+        </html>
+    )
 }
 
 use std::fs;
