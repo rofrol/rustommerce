@@ -35,7 +35,7 @@ fn connection() -> Connection {
     .unwrap()
 }
 
-pub fn user_information(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
     let user_id = 1;
     let rows = &conn.query(
