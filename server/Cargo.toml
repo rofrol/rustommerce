@@ -2,6 +2,7 @@
 name = "rustommerce"
 version = "0.1.0"
 authors = ["Roman Frołow"]
+edition = "2018"
 
 [dependencies]
 postgres = "0.15.2"
