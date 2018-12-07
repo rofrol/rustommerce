@@ -9,6 +9,8 @@ use std::env;
 use actix_web::{HttpRequest, HttpResponse};
 use futures::future::{result, FutureResult};
 
+use serde_derive::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize)]
 struct UserInformation {
     userId: i32,
