@@ -7,14 +7,7 @@ mod api;
 // mod cors;
 // mod files;
 
-extern crate actix;
-extern crate actix_web;
-extern crate env_logger;
-
-extern crate postgres;
-extern crate serde_json;
-#[macro_use]
-extern crate serde_derive;
+use serde_derive::{Deserialize, Serialize};
 
 extern crate dotenv;
 use dotenv::dotenv;
