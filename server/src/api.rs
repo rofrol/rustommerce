@@ -25,12 +25,6 @@ struct Notification {
 }
 
 fn connection() -> Connection {
-    let s = "postgres://".to_owned()
-        + &env::var("PGUSER").unwrap()
-        + "@localhost/"
-        + &env::var("PGDATABASE").unwrap();
-    println!("s: {}", s);
-
     Connection::connect(
         "postgres://".to_owned()
             + &env::var("PGUSER").unwrap()
