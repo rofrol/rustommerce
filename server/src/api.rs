@@ -64,7 +64,7 @@ pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_
         name: row.get(1),
         surname: row.get(2),
         magicUrl: row.get(3),
-        notifications: notifications,
+        notifications,
     };
     result(Ok(HttpResponse::Ok().json(s)))
 }

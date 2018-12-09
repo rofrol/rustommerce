@@ -155,7 +155,7 @@ fn getStr() -> String {
         );
 
         main_file
-            .write(str1.as_bytes())
+            .write_all(str1.as_bytes())
             .expect("file content not saved");
 
         stdout = Command::new("node")
