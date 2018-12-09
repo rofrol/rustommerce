@@ -9,17 +9,12 @@ mod api;
 
 use serde_derive::{Deserialize, Serialize};
 
-extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
 use actix_web::{http::Method, middleware, server, App, FromRequest, HttpRequest, HttpResponse};
 
-extern crate futures;
 use futures::future::{result, FutureResult};
-
-extern crate typed_html;
-extern crate typed_html_macros;
 
 use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
@@ -46,7 +41,7 @@ struct TemplateParams {
 }
 
 fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
-    let params = actix_web::Path::<TemplateParams>::extract(req).unwrap();
+    let params = actix_web::Path::<TemplateParams>::extract(req).expect("Path extract failed");
     let ssr = params.ssr;
     let s2 = getStr();
     let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
@@ -128,7 +123,6 @@ fn doc<T: OutputType + 'static>(
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-extern crate time;
 
 fn getStr() -> String {
     fs::copy(
