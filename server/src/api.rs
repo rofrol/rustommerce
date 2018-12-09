@@ -110,19 +110,13 @@ struct Comment {
     date: String,
 }
 
-#[derive(Deserialize)]
-struct DataSetParams {
-    url: String,
-}
-
 // test url: /dataSets/name-of-data-set
 pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
 
-    let params = actix_web::Path::<DataSetParams>::extract(req).expect("Path extract failed");
-    let url = &params.url;
+    let url = actix_web::Path::<String>::extract(req).expect("Path extract failed");
 
-    let url2 = "dataSets/".to_owned() + url;
+    let url2 = "dataSets/".to_owned() + &url;
     let rows = &conn
         .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
         .expect("Query failed");

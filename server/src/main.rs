@@ -7,7 +7,7 @@ mod api;
 // mod cors;
 // mod files;
 
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::Serialize;
 
 use dotenv::dotenv;
 use std::env;
@@ -35,14 +35,8 @@ fn index(_req: &HttpRequest) -> &'static str {
 use std::path;
 use std::process::Command;
 
-#[derive(Deserialize)]
-struct TemplateParams {
-    ssr: bool,
-}
-
 fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
-    let params = actix_web::Path::<TemplateParams>::extract(req).expect("Path extract failed");
-    let ssr = params.ssr;
+    let ssr = *actix_web::Path::<bool>::extract(req).expect("Path extract failed");
     let s2 = getStr();
     let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
     let context = TemplateContext {
