@@ -200,6 +200,7 @@ fn main() {
             .resource("/userInformation", |r| {
                 r.method(Method::GET).a(api::user_information)
             })
+            .resource("/dataSets", |r| r.method(Method::GET).a(api::data_sets))
     })
     .bind("127.0.0.1:8080")
     .unwrap()

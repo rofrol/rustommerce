@@ -68,15 +68,13 @@ pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_
     };
     result(Ok(HttpResponse::Ok().json(s)))
 }
-/*
 #[derive(Serialize, Deserialize)]
 struct DataSet {
     id: i32,
     name: String,
 }
 
-#[get("/dataSets")]
-fn data_sets() -> CORS<JSON<Vec<DataSet>>> {
+pub fn data_sets(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
     let mut data_sets = Vec::new();
 
@@ -90,8 +88,10 @@ fn data_sets() -> CORS<JSON<Vec<DataSet>>> {
         println!("Found DataSet {}", &data_set.name);
         data_sets.push(data_set);
     }
-    CORS::any(JSON(data_sets))
+    result(Ok(HttpResponse::Ok().json(data_sets)))
 }
+
+/*
 
 #[derive(Serialize, Deserialize)]
 struct DataSetWithComments {
