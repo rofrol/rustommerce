@@ -43,15 +43,15 @@ pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_
     let rows = &conn.query(
     r#"SELECT "userId", name, surname, "magicUrl" FROM user_information where "userId" = $1"#,
                            &[&user_id])
-                    .unwrap();
-    let row = rows.into_iter().next().unwrap();
+                    .expect("Query failed");
+    let row = rows.into_iter().next().expect("No next row");
 
     let mut notifications = Vec::new();
     for row in &conn.query(
         r#"select context, status from user_information as u join notifications as n on n."userId"
          = u."userId" and u."userId" = $1"#,
                            &[&user_id])
-                    .unwrap() {
+                    .expect("Query failed") {
         let notification = Notification {
             context: row.get(0),
             status: row.get(1),
@@ -78,7 +78,10 @@ pub fn data_sets(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::er
     let conn = connection();
     let mut data_sets = Vec::new();
 
-    for row in &conn.query("SELECT id, name FROM data_sets", &[]).unwrap() {
+    for row in &conn
+        .query("SELECT id, name FROM data_sets", &[])
+        .expect("Query failed")
+    {
         let data_set = DataSet {
             id: row.get(0),
             name: row.get(1),
@@ -112,27 +115,27 @@ struct DataSetParams {
     url: String,
 }
 
+// test url: /dataSets/name-of-data-set
 pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
 
-    let params = actix_web::Path::<DataSetParams>::extract(req).unwrap();
+    let params = actix_web::Path::<DataSetParams>::extract(req).expect("Path extract failed");
     let url = &params.url;
 
     let url2 = "dataSets/".to_owned() + url;
     let rows = &conn
         .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
-        .unwrap();
-    let row = rows.into_iter().next().unwrap();
+        .expect("Query failed");
+    let row = rows.into_iter().next().expect("No next row");
     let data_set_id: i32 = row.get(0);
 
     let mut comments = Vec::new();
     for row in &conn
         .query(
-            r#"select c.id, content, "userName", "userPhotoUrl", date from comments as c
-             join data_sets as d on c.data_set_id = d.id and d.id = $1"#,
+            r#"select c.id, content, "userName", "userPhotoUrl", date from comments as c join data_sets as d on c.data_set_id = d.id and d.id = $1"#,
             &[&data_set_id],
         )
-        .unwrap()
+        .expect("Query failed")
     {
         let comment = Comment {
             id: row.get(0),
