@@ -41,15 +41,15 @@ pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_
     let conn = connection();
     let user_id = 1;
     let rows = &conn.query(
-    "SELECT \"userId\", name, surname, \"magicUrl\" FROM user_information where \"userId\" = $1",
+    r#"SELECT "userId", name, surname, "magicUrl" FROM user_information where "userId" = $1"#,
                            &[&user_id])
                     .unwrap();
     let row = rows.into_iter().next().unwrap();
 
     let mut notifications = Vec::new();
     for row in &conn.query(
-        "select context, status from user_information as u join notifications as n on n.\"userId\" \
-         = u.\"userId\" and u.\"userId\" = $1",
+        r#"select context, status from user_information as u join notifications as n on n."userId"
+         = u."userId" and u."userId" = $1"#,
                            &[&user_id])
                     .unwrap() {
         let notification = Notification {
