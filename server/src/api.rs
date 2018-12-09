@@ -149,7 +149,6 @@ pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::erro
     result(Ok(HttpResponse::Ok().json(s)))
 }
 
-/*
 #[derive(Serialize, Deserialize)]
 struct DataSetShort {
     id: i32,
@@ -162,27 +161,28 @@ struct DataSetShort {
     url: String,
 }
 
-#[get("/dataSetsCategories/<url>")]
-fn data_set_category(url: &str) -> CORS<JSON<DataSetShort>> {
+// test url: /dataSetsCategories/dataSets
+pub fn data_set_category(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
-    let url2 = "dataSetsCategories/".to_owned() + url;
+    let url = actix_web::Path::<String>::extract(req).expect("Path extract failed");
+    let url2 = "dataSetsCategories/".to_owned() + &url;
     let rows = &conn
         .query(
-            "select id from categories where \"contentUrl\" = $1",
+            r#"select id from categories where "contentUrl" = $1"#,
             &[&url2],
         )
         .unwrap();
     let row = rows.into_iter().next().unwrap();
     let category_id: i32 = row.get(0);
 
-    let dataSetShortRows = &conn.query("select d.id, name, SUBSTRING(description,0,100) as description, owner, \"releaseDate\", \
-        rating, favourite, url from data_sets d join data_sets_in_categories di on d.id = di.data_sets_id \
-        and di.categories_id = $1",
+    let dataSetShortRows = &conn.query(r#"select d.id, name, SUBSTRING(description,0,100) as description, owner, "releaseDate",
+        rating, favourite, url from data_sets d join data_sets_in_categories di on d.id = di.data_sets_id
+        and di.categories_id = $1"#,
                     &[&category_id])
              .unwrap();
     let dataSetShortRow = dataSetShortRows.into_iter().next().unwrap();
 
-    CORS::any(JSON(DataSetShort {
+    let s = DataSetShort {
         id: dataSetShortRow.get(0),
         name: dataSetShortRow.get(1),
         description: dataSetShortRow.get(2),
@@ -191,9 +191,12 @@ fn data_set_category(url: &str) -> CORS<JSON<DataSetShort>> {
         rating: dataSetShortRow.get(5),
         favourite: dataSetShortRow.get(6),
         url: dataSetShortRow.get(7),
-    }))
+    };
+
+    result(Ok(HttpResponse::Ok().json(s)))
 }
 
+/*
 #[derive(Serialize, Deserialize)]
 struct Category {
     id: i32,
