@@ -6,7 +6,7 @@ use postgres::{Connection, TlsMode};
 
 use std::env;
 
-use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{FromRequest, HttpRequest, HttpResponse};
 use futures::future::{result, FutureResult};
 
 use serde_derive::{Deserialize, Serialize};
@@ -91,8 +91,6 @@ pub fn data_sets(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::er
     result(Ok(HttpResponse::Ok().json(data_sets)))
 }
 
-/*
-
 #[derive(Serialize, Deserialize)]
 struct DataSetWithComments {
     id: i32,
@@ -109,9 +107,17 @@ struct Comment {
     date: String,
 }
 
-#[get("/dataSets/<url>")]
-fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
+#[derive(Deserialize)]
+struct DataSetParams {
+    url: String,
+}
+
+pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
+
+    let params = actix_web::Path::<DataSetParams>::extract(req).unwrap();
+    let url = &params.url;
+
     let url2 = "dataSets/".to_owned() + url;
     let rows = &conn
         .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
@@ -122,8 +128,8 @@ fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
     let mut comments = Vec::new();
     for row in &conn
         .query(
-            "select c.id, content, \"userName\", \"userPhotoUrl\", date from comments as c \
-             join data_sets as d on c.data_set_id = d.id and d.id = $1",
+            r#"select c.id, content, "userName", "userPhotoUrl", date from comments as c
+             join data_sets as d on c.data_set_id = d.id and d.id = $1"#,
             &[&data_set_id],
         )
         .unwrap()
@@ -138,13 +144,15 @@ fn data_set(url: &str) -> CORS<JSON<DataSetWithComments>> {
         comments.push(comment);
     }
 
-    CORS::any(JSON(DataSetWithComments {
+    let s = DataSetWithComments {
         id: row.get(0),
         name: row.get(1),
         comments: comments,
-    }))
+    };
+    result(Ok(HttpResponse::Ok().json(s)))
 }
 
+/*
 #[derive(Serialize, Deserialize)]
 struct DataSetShort {
     id: i32,

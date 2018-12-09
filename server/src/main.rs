@@ -201,6 +201,9 @@ fn main() {
                 r.method(Method::GET).a(api::user_information)
             })
             .resource("/dataSets", |r| r.method(Method::GET).a(api::data_sets))
+            .resource("/dataSets/{url}", |r| {
+                r.method(Method::GET).a(api::data_set)
+            })
     })
     .bind("127.0.0.1:8080")
     .unwrap()
