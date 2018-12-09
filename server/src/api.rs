@@ -150,7 +150,7 @@ pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::erro
     let s = DataSetWithComments {
         id: row.get(0),
         name: row.get(1),
-        comments: comments,
+        comments,
     };
     result(Ok(HttpResponse::Ok().json(s)))
 }
