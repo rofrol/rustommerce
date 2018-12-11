@@ -28,10 +28,6 @@ struct TemplateContext {
     items: Vec<String>,
 }
 
-fn index(_req: &HttpRequest) -> &'static str {
-    "Hello world"
-}
-
 use std::path;
 use std::process::Command;
 
@@ -183,7 +179,6 @@ fn main() {
     server::new(|| {
         App::new()
             .middleware(middleware::Logger::default())
-            .resource("/", |r| r.f(index))
             .resource("/template/{ssr}", |r| r.method(Method::GET).a(template))
             .resource("/userInformation", |r| {
                 r.method(Method::GET).a(api::user_information)
@@ -198,6 +193,7 @@ fn main() {
             .resource("/dataSetsCategories", |r| {
                 r.method(Method::GET).a(api::data_sets_categories)
             })
+            .resource("/", |r| r.f(files::index))
             .resource("/favicon.ico", |r| r.f(files::favicon))
     })
     .bind("127.0.0.1:8080")
