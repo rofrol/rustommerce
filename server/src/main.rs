@@ -4,8 +4,8 @@
 #![allow(non_snake_case)]
 
 mod api;
+mod files;
 // mod cors;
-// mod files;
 
 use serde_derive::Serialize;
 
@@ -198,6 +198,7 @@ fn main() {
             .resource("/dataSetsCategories", |r| {
                 r.method(Method::GET).a(api::data_sets_categories)
             })
+            .resource("/favicon.ico", |r| r.f(files::favicon))
     })
     .bind("127.0.0.1:8080")
     .unwrap()

@@ -1,22 +1,21 @@
-use rocket::response::NamedFile;
+use actix_web::{fs, HttpRequest};
 
+/*
 use std::io;
 use std::path::{Path, PathBuf};
-
-use cors::CORS;
 
 #[get("/")]
 fn index() -> CORS<io::Result<NamedFile>> {
     CORS::any(NamedFile::open("../client/dist/index.html"))
 }
+*/
 
 // http://stackoverflow.com/questions/2208933/how-do-i-force-a-favicon-refresh
-#[allow(unused_variables)]
-#[get("/favicon.ico?<v>")]
-fn favicon(v: V) -> CORS<io::Result<NamedFile>> {
-    CORS::any(NamedFile::open("../client/dist/favicon.ico"))
+pub fn favicon(_req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
+    Ok(fs::NamedFile::open("../client/dist/favicon.ico")?)
 }
 
+/*
 #[allow(unused_variables)]
 #[get("/<file..>", rank = 100)]
 fn redirect_to_index(file: PathBuf) -> CORS<io::Result<NamedFile>> {
@@ -52,3 +51,4 @@ fn styles_with_query(file: PathBuf, v: V) -> CORS<io::Result<NamedFile>> {
 fn images(file: PathBuf) -> CORS<io::Result<NamedFile>> {
     CORS::any(NamedFile::open(Path::new("../client/dist/images").join(file)))
 }
+*/
