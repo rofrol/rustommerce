@@ -195,6 +195,9 @@ fn main() {
             .resource("/dataSetsCategories/{url}", |r| {
                 r.method(Method::GET).a(api::data_set_category)
             })
+            .resource("/dataSetsCategories", |r| {
+                r.method(Method::GET).a(api::data_sets_categories)
+            })
     })
     .bind("127.0.0.1:8080")
     .unwrap()
