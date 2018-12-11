@@ -12,7 +12,9 @@ use serde_derive::Serialize;
 use dotenv::dotenv;
 use std::env;
 
-use actix_web::{http::Method, middleware, server, App, FromRequest, HttpRequest, HttpResponse};
+use actix_web::{
+    http::Method, middleware, pred, server, App, FromRequest, HttpRequest, HttpResponse,
+};
 
 use futures::future::{result, FutureResult};
 
@@ -193,10 +195,15 @@ fn main() {
             .resource("/dataSetsCategories", |r| {
                 r.method(Method::GET).a(api::data_sets_categories)
             })
-            .resource("/", |r| r.f(files::index))
             .resource("/favicon.ico", |r| r.f(files::favicon))
             .resource("/styles/{file:.*}", |r| r.f(files::styles))
             .resource("/js/{file:.*}", |r| r.f(files::js))
+            .default_resource(|r| {
+                r.method(Method::GET).f(files::index);
+                r.route()
+                    .filter(pred::Not(pred::Get()))
+                    .f(|_req| HttpResponse::MethodNotAllowed());
+            })
     })
     .bind("127.0.0.1:8080")
     .unwrap()
