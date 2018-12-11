@@ -195,6 +195,7 @@ fn main() {
             })
             .resource("/", |r| r.f(files::index))
             .resource("/favicon.ico", |r| r.f(files::favicon))
+            .resource("/styles/{file}", |r| r.f(files::styles))
     })
     .bind("127.0.0.1:8080")
     .unwrap()
