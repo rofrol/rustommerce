@@ -1,14 +1,11 @@
 use actix_web::{fs, HttpRequest};
 
-/*
-use std::io;
-use std::path::{Path, PathBuf};
+// use std::io;
+// use std::path::{Path, PathBuf};
 
-#[get("/")]
-fn index() -> CORS<io::Result<NamedFile>> {
-    CORS::any(NamedFile::open("../client/dist/index.html"))
+pub fn index(_req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
+    Ok(fs::NamedFile::open("../client/dist/index.html")?)
 }
-*/
 
 // http://stackoverflow.com/questions/2208933/how-do-i-force-a-favicon-refresh
 pub fn favicon(_req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
