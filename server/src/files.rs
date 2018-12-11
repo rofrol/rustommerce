@@ -12,13 +12,6 @@ pub fn favicon(_req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
     Ok(fs::NamedFile::open("../client/dist/favicon.ico")?)
 }
 
-/*
-#[get("/<file..>", rank = 100)]
-fn redirect_to_index(file: PathBuf) -> CORS<io::Result<NamedFile>> {
-    CORS::any(NamedFile::open("../client/dist/index.html"))
-}
-*/
-
 pub fn js(req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
     let file = actix_web::Path::<PathBuf>::extract(req)?.into_inner();
     Ok(fs::NamedFile::open(
