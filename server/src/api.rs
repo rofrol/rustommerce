@@ -196,7 +196,6 @@ pub fn data_set_category(req: &HttpRequest) -> FutureResult<HttpResponse, actix_
     result(Ok(HttpResponse::Ok().json(s)))
 }
 
-/*
 #[derive(Serialize, Deserialize)]
 struct Category {
     id: i32,
@@ -216,14 +215,15 @@ struct Subcategory {
     contentUrl: String,
 }
 
-#[get("/dataSetsCategories")]
-fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
+pub fn data_sets_categories(
+    _req: &HttpRequest,
+) -> FutureResult<HttpResponse, actix_web::error::Error> {
     let conn = connection();
     let mut categories = Vec::new();
     for row in &conn
         .query(
-            "SELECT id, title, route, count, \"contentUrl\" FROM categories \
-             where type = 'dataSet' and \"parentId\" is null",
+            r#"SELECT id, title, route, count, "contentUrl" FROM categories
+             where type = 'dataSet' and "parentId" is null"#,
             &[],
         )
         .unwrap()
@@ -233,8 +233,8 @@ fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
         let mut subcategories = Vec::new();
         for subcategoryRow in &conn
             .query(
-                "SELECT id, title, route, count, \"contentUrl\" FROM categories \
-                 where type = 'dataSet' and \"parentId\" = $1",
+                r#"SELECT id, title, route, count, "contentUrl" FROM categories
+                 where type = 'dataSet' and "parentId" = $1"#,
                 &[&row_id],
             )
             .unwrap()
@@ -261,9 +261,10 @@ fn data_sets_categories() -> CORS<JSON<Vec<Category>>> {
         println!("Found Category {}", &category.title);
         categories.push(category);
     }
-    CORS::any(JSON(categories))
+    result(Ok(HttpResponse::Ok().json(categories)))
 }
 
+/*
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
