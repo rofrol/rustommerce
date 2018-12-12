@@ -161,16 +161,39 @@ fn getStr() -> String {
 
     String::from_utf8_lossy(&*stdout)
         .lines()
-        .skip_while(|x| x.find("id=\"content\"").is_none())
+        .skip_while(|x| x.find(r#"id="content""#).is_none())
         .collect()
 }
 
-// #[error(404)]
-// fn not_found(req: &Request) -> CORS<Template> {
-//     let mut map = std::collections::HashMap::new();
-//     map.insert("path", req.uri().as_str());
-//     CORS::any(Template::render("error/404", &map))
-// }
+fn not_found(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+    let uri = req.uri();
+    let host = uri.host().unwrap_or("");
+    let port = uri
+        .port_part()
+        .map_or("".to_string(), |port| ":".to_string() + port.as_ref());
+    let path_and_query = uri
+        .path_and_query()
+        .map_or("".to_string(), |path_and_query| path_and_query.to_string());
+    let uri_string = format!("{}{}{}", host, port, path_and_query);
+    let doc: DOMTree<String> = html!(
+        <html>
+          <head>
+            <title>"404"</title>
+            <meta charset="utf-8" />
+          </head>
+          <body>
+            <h1>"404: Hey! There's nothing here."</h1>
+            {text!("The page at {} does not exist!", uri_string)}
+          </body>
+        </html>
+    );
+    let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
+
+    // TODO: Return error
+    result(Ok(HttpResponse::Ok()
+        .content_type("text/html")
+        .body(doc_str)))
+}
 
 fn main() {
     dotenv().ok();
@@ -200,9 +223,7 @@ fn main() {
             .resource("/js/{file:.*}", |r| r.f(files::js))
             .default_resource(|r| {
                 r.method(Method::GET).f(files::index);
-                r.route()
-                    .filter(pred::Not(pred::Get()))
-                    .f(|_req| HttpResponse::MethodNotAllowed());
+                r.route().filter(pred::Not(pred::Get())).a(not_found);
             })
     })
     .bind("127.0.0.1:8080")
@@ -212,33 +233,4 @@ fn main() {
     println!("Starting http server: 127.0.0.1:8080");
 
     let _ = sys.run();
-
-    // println!("{:?}", env::var("data_server").unwrap());
-    // rocket::ignite()
-    //     .mount(
-    //         "/",
-    //         routes![
-    //             template,
-    //             files::favicon,
-    //             files::index,
-    //             files::redirect_to_index,
-    //             files::js,
-    //             files::styles,
-    //             files::styles_with_query,
-    //             files::images
-    //         ],
-    //     )
-    //     .mount(
-    //         "/api",
-    //         routes![
-    //             api::user_information,
-    //             api::data_sets,
-    //             api::data_set,
-    //             api::data_set_category,
-    //             api::data_sets_categories,
-    //             api::data_sets_new
-    //         ],
-    //     )
-    //     .catch(errors![not_found])
-    //     .launch();
 }

@@ -25,25 +25,3 @@ pub fn styles(req: &HttpRequest) -> actix_web::Result<fs::NamedFile> {
         Path::new("../client/dist/styles").join(file),
     )?)
 }
-
-/*
-// TODO: files like `fontawesome-webfont.eot?#iefix&v=4.7.0` are supported on master
-// branch of Rocket.
-// Remove this in the future.
-#[allow(dead_code)]
-#[derive(FromForm)]
-struct V<'r> {
-    v: &'r str,
-}
-
-#[allow(unused_variables)]
-#[get("/styles/<file..>?<v>")]
-fn styles_with_query(file: PathBuf, v: V) -> CORS<io::Result<NamedFile>> {
-    CORS::any(NamedFile::open(Path::new("../client/dist/styles").join(file)))
-}
-
-#[get("/images/<file..>")]
-fn images(file: PathBuf) -> CORS<io::Result<NamedFile>> {
-    CORS::any(NamedFile::open(Path::new("../client/dist/images").join(file)))
-}
-*/
