@@ -15,6 +15,7 @@ If everything goes ok run:
 You may need to install build tools:
 
 ```bash
+$ sudo apt update
 $ sudo apt install build-essential
 ```
 
