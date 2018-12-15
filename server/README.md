@@ -10,6 +10,14 @@ If everything goes ok run:
 
 `./start.sh`
 
+## Ubuntu
+
+You may need to install build tools:
+
+```bash
+$ sudo apt install build-essential
+```
+
 ## Debugging
 
 `RUST_BACKTRACE=1 ./start.sh`
