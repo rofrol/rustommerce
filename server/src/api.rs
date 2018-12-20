@@ -27,14 +27,15 @@ struct Notification {
 }
 
 fn connection() -> Connection {
-    Connection::connect(
-        "postgres://".to_owned()
-            + &env::var("PGUSER").unwrap()
-            + "@localhost/"
-            + &env::var("PGDATABASE").unwrap(),
-        TlsMode::None,
-    )
-    .unwrap()
+    let connection_string = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        &env::var("DBUSER").unwrap(),
+        &env::var("DBPASS").unwrap(),
+        &env::var("DBHOST").unwrap(),
+        &env::var("DBPORT").unwrap(),
+        &env::var("DBNAME").unwrap(),
+    );
+    Connection::connect(connection_string, TlsMode::None).unwrap()
 }
 
 pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
