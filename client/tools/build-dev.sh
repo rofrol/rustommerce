@@ -3,5 +3,5 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR/..
 
-./tools/build-non-elm.sh && \
-./tools/elm-make-dev.sh
+bash tools/build-non-elm.sh && \
+bash tools/elm-make-dev.sh
