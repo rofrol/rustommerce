@@ -3,6 +3,8 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
+use std::io;
+
 mod api;
 mod files;
 // mod cors;
@@ -13,10 +15,11 @@ use dotenv::dotenv;
 use std::env;
 
 use actix_web::{
-    http::Method, middleware, pred, server, App, FromRequest, HttpRequest, HttpResponse,
+    guard, middleware, web, App, Error as ActixError, FromRequest, HttpRequest, HttpResponse,
+    HttpServer,
 };
 
-use futures::future::{result, FutureResult};
+use futures::future::{result, Future};
 
 use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
@@ -33,8 +36,8 @@ struct TemplateContext {
 use std::path;
 use std::process::Command;
 
-fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
-    let ssr = *actix_web::Path::<bool>::extract(req).expect("Path extract failed");
+fn template(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
+    let ssr = *web::Path::<bool>::extract(&req).expect("Path extract failed");
     let s2 = getStr();
     let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
     let context = TemplateContext {
@@ -78,7 +81,7 @@ fn template(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::E
         .body(doc_str)))
 }
 
-fn doc<T: OutputType + 'static>(
+fn doc<T: OutputType + 'static + Send>(
     tree: Box<dyn FlowContent<T>>,
     context: TemplateContext,
 ) -> DOMTree<T> {
@@ -96,16 +99,16 @@ fn doc<T: OutputType + 'static>(
                 <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
             </head>
             <body>
-                <h1>{text!("{}", name)}</h1>
-                <h3>"Here are your items:"</h3>
-                <ul>
-                   {
-                    items.iter().map(|item| html!(
-                          <li>{text!("{}", item)}</li>
-                    ))
-                   }
-                </ul>
-                { tree }
+                 <h1>{text!("{}", name)}</h1>
+                 <h3>"Here are your items:"</h3>
+                 <ul>
+                    {
+                     items.iter().map(|item| html!(
+                           <li>{text!("{}", item)}</li>
+                     ))
+                    }
+                 </ul>
+                 { tree }
                 <p>"Try going to "<a href="/hello/YourName">"/hello/YourName"</a></p>
             </body>
         </html>
@@ -165,72 +168,46 @@ fn getStr() -> String {
         .collect()
 }
 
-fn not_found(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
-    let uri = req.uri();
-    let host = uri.host().unwrap_or("");
-    let port = uri
-        .port_part()
-        .map_or("".to_string(), |port| ":".to_string() + port.as_ref());
-    let path_and_query = uri
-        .path_and_query()
-        .map_or("".to_string(), |path_and_query| path_and_query.to_string());
-    let uri_string = format!("{}{}{}", host, port, path_and_query);
-    let doc: DOMTree<String> = html!(
-        <html>
-          <head>
-            <title>"404"</title>
-            <meta charset="utf-8" />
-          </head>
-          <body>
-            <h1>"404: Hey! There's nothing here."</h1>
-            {text!("The page at {} does not exist!", uri_string)}
-          </body>
-        </html>
-    );
-    let doc_str = "<!doctype html>".to_owned() + &doc.to_string();
-
-    // TODO: Return error
-    result(Ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body(doc_str)))
-}
-
-fn main() {
+fn main() -> io::Result<()> {
     dotenv().ok();
     env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
-    let sys = actix::System::new("hello-world");
+    let endpoint = "127.0.0.1:8080";
 
-    server::new(|| {
+    println!("Starting server at: {:?}", endpoint);
+
+    HttpServer::new(|| {
         App::new()
-            .middleware(middleware::Logger::default())
-            .resource("/template/{ssr}", |r| r.method(Method::GET).a(template))
-            .resource("/userInformation", |r| {
-                r.method(Method::GET).a(api::user_information)
-            })
-            .resource("/dataSets", |r| r.method(Method::GET).a(api::data_sets))
-            .resource("/dataSets/{url}", |r| {
-                r.method(Method::GET).a(api::data_set)
-            })
-            .resource("/dataSetsCategories/{url}", |r| {
-                r.method(Method::GET).a(api::data_set_category)
-            })
-            .resource("/dataSetsCategories", |r| {
-                r.method(Method::GET).a(api::data_sets_categories)
-            })
-            .resource("/favicon.ico", |r| r.f(files::favicon))
-            .resource("/styles/{file:.*}", |r| r.f(files::styles))
-            .resource("/js/{file:.*}", |r| r.f(files::js))
-            .default_resource(|r| {
-                r.method(Method::GET).f(files::index);
-                r.route().filter(pred::Not(pred::Get())).a(not_found);
-            })
+            .wrap(middleware::Logger::default())
+            .service(web::resource("/template/{ssr}").route(web::get().to_async(template)))
+            .service(
+                web::resource("/userInformation").route(web::get().to_async(api::user_information)),
+            )
+            .service(web::resource("/dataSets").route(web::get().to_async(api::data_sets)))
+            .service(web::resource("/dataSets/{url}").route(web::get().to_async(api::data_set)))
+            .service(
+                web::resource("/dataSetsCategories")
+                    .route(web::get().to_async(api::data_sets_categories)),
+            )
+            .service(
+                web::resource("/dataSetsCategories/{url}")
+                    .route(web::get().to_async(api::data_set_category)),
+            )
+            .service(web::resource("/favicon").route(web::get().to(files::favicon)))
+            .service(web::resource("/styles/{file:.*}").route(web::get().to(files::styles)))
+            .service(web::resource("/js/{file:.*}").route(web::get().to(files::js)))
+            .default_service(
+                // 404 for GET request
+                web::resource("")
+                    .route(web::get().to(files::index))
+                    // all requests that are not `GET`
+                    .route(
+                        web::route()
+                            .guard(guard::Not(guard::Get()))
+                            .to(|| HttpResponse::MethodNotAllowed()),
+                    ),
+            )
     })
-    .bind("127.0.0.1:8080")
-    .unwrap()
-    .start();
-
-    println!("Starting http server: 127.0.0.1:8080");
-
-    let _ = sys.run();
+    .bind(endpoint)?
+    .run()
 }

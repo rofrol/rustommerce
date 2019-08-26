@@ -6,8 +6,8 @@ use postgres::{Connection, TlsMode};
 
 use std::env;
 
-use actix_web::{FromRequest, HttpRequest, HttpResponse};
-use futures::future::{result, FutureResult};
+use actix_web::{web, Error as ActixError, FromRequest, HttpRequest, HttpResponse};
+use futures::future::{result, Future};
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ fn connection() -> Connection {
     Connection::connect(connection_string, TlsMode::None).unwrap()
 }
 
-pub fn user_information(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
     let conn = connection();
     let user_id = 1;
     let rows = &conn.query(
@@ -75,7 +75,7 @@ struct DataSet {
     name: String,
 }
 
-pub fn data_sets(_req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
     let conn = connection();
     let mut data_sets = Vec::new();
 
@@ -112,10 +112,10 @@ struct Comment {
 }
 
 // test url: /dataSets/name-of-data-set
-pub fn data_set(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
     let conn = connection();
 
-    let url = actix_web::Path::<String>::extract(req).expect("Path extract failed");
+    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
 
     let url2 = "dataSets/".to_owned() + &url;
     let rows = &conn
@@ -163,9 +163,9 @@ struct DataSetShort {
 }
 
 // test url: /dataSetsCategories/dataSets
-pub fn data_set_category(req: &HttpRequest) -> FutureResult<HttpResponse, actix_web::error::Error> {
+pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
     let conn = connection();
-    let url = actix_web::Path::<String>::extract(req).expect("Path extract failed");
+    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
     let url2 = "dataSetsCategories/".to_owned() + &url;
     let rows = &conn
         .query(
@@ -217,8 +217,8 @@ struct Subcategory {
 }
 
 pub fn data_sets_categories(
-    _req: &HttpRequest,
-) -> FutureResult<HttpResponse, actix_web::error::Error> {
+    _req: HttpRequest,
+) -> impl Future<Item = HttpResponse, Error = ActixError> {
     let conn = connection();
     let mut categories = Vec::new();
     for row in &conn
