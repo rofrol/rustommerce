@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR/..
 
 bash tools/clean.sh && \
-yarn && \
+npm i && \
 node tools/generate-env.js && \
 cp -r src/favicon.ico dist/ && \
 cp -r src/images dist/ && \
