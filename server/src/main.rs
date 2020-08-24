@@ -3,11 +3,8 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
-use std::io;
-
 mod api;
 mod files;
-// mod cors;
 
 use serde_derive::Serialize;
 
