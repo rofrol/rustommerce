@@ -168,11 +168,13 @@ fn getStr() -> String {
         .collect()
 }
 
-fn main() -> io::Result<()> {
+// TODO: Do I need this 'static + Send + Sync? Or maybe only 'static?
+//fn main() -> Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
-    let endpoint = "127.0.0.1:8080";
+    let endpoint = format!("127.0.0.1:{}", env::var("SERVER_PORT")?);
 
     println!("Starting server at: {:?}", endpoint);
 
@@ -210,4 +212,9 @@ fn main() -> io::Result<()> {
     })
     .bind(endpoint)?
     .run()
+    // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
+    // `io::Result<()>`, there is error and `into()` is needed.
+    // expected struct `std::boxed::Box`, found struct `std::io::Error`
+    // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
+    .map_err(|e| e.into())
 }
