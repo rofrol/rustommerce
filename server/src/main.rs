@@ -22,6 +22,15 @@ use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
 use typed_html::{dom::DOMTree, html, text, OutputType};
 
+use tinytemplate::TinyTemplate;
+
+static TEMPLATE: &'static str = "Hello {name}!";
+
+#[derive(Serialize)]
+struct Context {
+    name: String,
+}
+
 #[derive(Serialize, Debug)]
 struct TemplateContext {
     parent: String,
@@ -174,6 +183,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let endpoint = format!("127.0.0.1:{}", env::var("SERVER_PORT")?);
 
     println!("Starting server at: {:?}", endpoint);
+
+    let mut tt = TinyTemplate::new();
+    tt.add_template("hello", TEMPLATE)?;
+
+    let context = Context {
+        name: "World".to_string(),
+    };
+
+    let rendered = tt.render("hello", &context)?;
+    println!("{}", rendered);
 
     HttpServer::new(|| {
         App::new()

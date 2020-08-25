@@ -17,4 +17,4 @@ typed-html = { git = "https://github.com/bodil/typed-html#4c13ecca" }
 typed-html-macros = { git = "https://github.com/bodil/typed-html#4c13ecca" }
 futures = "0.1.28"
 actix-files = "0.1.4"
-horrorshow = "0.8.3"
+tinytemplate = "1.1.0"
