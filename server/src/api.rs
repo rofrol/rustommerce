@@ -2,7 +2,7 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
-use postgres::{Connection, TlsMode};
+use postgres::{Client, NoTls};
 
 use std::env;
 
@@ -26,7 +26,7 @@ struct Notification {
     status: bool,
 }
 
-fn connection() -> Connection {
+fn get_client() -> Client {
     let connection_string = format!(
         "postgres://{}:{}@{}:{}/{}",
         &env::var("DBUSER").unwrap(),
@@ -35,20 +35,20 @@ fn connection() -> Connection {
         &env::var("DBPORT").unwrap(),
         &env::var("DBNAME").unwrap(),
     );
-    Connection::connect(connection_string, TlsMode::None).unwrap()
+    Client::connect(&connection_string, NoTls).unwrap()
 }
 
 pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let conn = connection();
+    let mut client = get_client();
     let user_id = 1;
-    let rows = &conn.query(
+    let rows = client.query(
     r#"SELECT "userId", name, surname, "magicUrl" FROM user_information where "userId" = $1"#,
                            &[&user_id])
                     .expect("Query failed");
     let row = rows.into_iter().next().expect("No next row");
 
     let mut notifications = Vec::new();
-    for row in &conn.query(
+    for row in client.query(
         r#"select context, status from user_information as u join notifications as n on n."userId"
          = u."userId" and u."userId" = $1"#,
                            &[&user_id])
@@ -69,6 +69,7 @@ pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, E
     };
     result(Ok(HttpResponse::Ok().json(s)))
 }
+
 #[derive(Serialize, Deserialize)]
 struct DataSet {
     id: i32,
@@ -76,10 +77,10 @@ struct DataSet {
 }
 
 pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let conn = connection();
+    let mut client = get_client();
     let mut data_sets = Vec::new();
 
-    for row in &conn
+    for row in client
         .query("SELECT id, name FROM data_sets", &[])
         .expect("Query failed")
     {
@@ -113,19 +114,19 @@ struct Comment {
 
 // test url: /dataSets/name-of-data-set
 pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let conn = connection();
+    let mut client = get_client();
 
     let url = web::Path::<String>::extract(&req).expect("Path extract failed");
 
     let url2 = "dataSets/".to_owned() + &url;
-    let rows = &conn
+    let rows = client
         .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
         .expect("Query failed");
     let row = rows.into_iter().next().expect("No next row");
     let data_set_id: i32 = row.get(0);
 
     let mut comments = Vec::new();
-    for row in &conn
+    for row in client
         .query(
             r#"select c.id, content, "userName", "userPhotoUrl", date from comments as c join data_sets as d on c.data_set_id = d.id and d.id = $1"#,
             &[&data_set_id],
@@ -164,10 +165,10 @@ struct DataSetShort {
 
 // test url: /dataSetsCategories/dataSets
 pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let conn = connection();
+    let mut client = get_client();
     let url = web::Path::<String>::extract(&req).expect("Path extract failed");
     let url2 = "dataSetsCategories/".to_owned() + &url;
-    let rows = &conn
+    let rows = client
         .query(
             r#"select id from categories where "contentUrl" = $1"#,
             &[&url2],
@@ -176,7 +177,7 @@ pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, E
     let row = rows.into_iter().next().unwrap();
     let category_id: i32 = row.get(0);
 
-    let dataSetShortRows = &conn.query(r#"select d.id, name, SUBSTRING(description,0,100) as description, owner, "releaseDate",
+    let dataSetShortRows = client.query(r#"select d.id, name, SUBSTRING(description,0,100) as description, owner, "releaseDate",
         rating, favourite, url from data_sets d join data_sets_in_categories di on d.id = di.data_sets_id
         and di.categories_id = $1"#,
                     &[&category_id])
@@ -219,9 +220,9 @@ struct Subcategory {
 pub fn data_sets_categories(
     _req: HttpRequest,
 ) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let conn = connection();
+    let mut client = get_client();
     let mut categories = Vec::new();
-    for row in &conn
+    for row in client
         .query(
             r#"SELECT id, title, route, count, "contentUrl" FROM categories
              where type = 'dataSet' and "parentId" is null"#,
@@ -232,7 +233,7 @@ pub fn data_sets_categories(
         let row_id: i32 = row.get(0);
 
         let mut subcategories = Vec::new();
-        for subcategoryRow in &conn
+        for subcategoryRow in client
             .query(
                 r#"SELECT id, title, route, count, "contentUrl" FROM categories
                  where type = 'dataSet' and "parentId" = $1"#,
