@@ -10,6 +10,16 @@ Unpack zip and extracted `/path/to/psql/bin` to `PATH` env.
 
 ```shell
 ./setup.sh
-./database_and_user.sh <dbname>
+./database_and_user.sh
 ./populate.sh
 ```
+
+## Ubuntu in WSL2
+
+Haven't checked if it works.
+
+`sudo apt install postgresql postgresql-contrib`
+
+- https://help.ubuntu.com/community/PostgreSQL#Installation
+- https://skmcloughlin.github.io/configuring_postgresql_for_wsl2
+- https://www.reddit.com/r/bashonubuntuonwindows/comments/glds15/how_to_use_postgres_with_wsl2/
