@@ -189,48 +189,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rendered = tt.render("hello", &context)?;
     println!("{}", rendered);
 
-    actix_rt::System::new("app")
-        .block_on(async move {
-            HttpServer::new(|| {
-                App::new()
-                    .wrap(middleware::Logger::default())
-                    .service(web::resource("/template/{ssr}").route(web::get().to(template)))
-                    .service(
-                        web::resource("/userInformation")
-                            .route(web::get().to(api::user_information)),
-                    )
-                    .service(web::resource("/dataSets").route(web::get().to(api::data_sets)))
-                    .service(web::resource("/dataSets/{url}").route(web::get().to(api::data_set)))
-                    .service(
-                        web::resource("/dataSetsCategories")
-                            .route(web::get().to(api::data_sets_categories)),
-                    )
-                    .service(
-                        web::resource("/dataSetsCategories/{url}")
-                            .route(web::get().to(api::data_set_category)),
-                    )
-                    .service(web::resource("/favicon").route(web::get().to(files::favicon)))
-                    .service(web::resource("/styles/{file:.*}").route(web::get().to(files::styles)))
-                    .service(web::resource("/js/{file:.*}").route(web::get().to(files::js)))
-                    .default_service(
-                        // 404 for GET request
-                        web::resource("")
-                            .route(web::get().to(files::index))
-                            // all requests that are not `GET`
-                            .route(
-                                web::route()
-                                    .guard(guard::Not(guard::Get()))
-                                    .to(|| HttpResponse::MethodNotAllowed()),
-                            ),
-                    )
-            })
-            .bind(endpoint)?
-            .run()
-            .await
-        })
-        // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
-        // `io::Result<()>`, there is error and `into()` is needed.
-        // expected struct `std::boxed::Box`, found struct `std::io::Error`
-        // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
-        .map_err(|e| e.into())
+    let sys = actix_rt::System::new("app");
+    HttpServer::new(|| {
+        App::new()
+            .wrap(middleware::Logger::default())
+            .service(web::resource("/template/{ssr}").route(web::get().to(template)))
+            .service(web::resource("/userInformation").route(web::get().to(api::user_information)))
+            .service(web::resource("/dataSets").route(web::get().to(api::data_sets)))
+            .service(web::resource("/dataSets/{url}").route(web::get().to(api::data_set)))
+            .service(
+                web::resource("/dataSetsCategories")
+                    .route(web::get().to(api::data_sets_categories)),
+            )
+            .service(
+                web::resource("/dataSetsCategories/{url}")
+                    .route(web::get().to(api::data_set_category)),
+            )
+            .service(web::resource("/favicon").route(web::get().to(files::favicon)))
+            .service(web::resource("/styles/{file:.*}").route(web::get().to(files::styles)))
+            .service(web::resource("/js/{file:.*}").route(web::get().to(files::js)))
+            .default_service(
+                // 404 for GET request
+                web::resource("")
+                    .route(web::get().to(files::index))
+                    // all requests that are not `GET`
+                    .route(
+                        web::route()
+                            .guard(guard::Not(guard::Get()))
+                            .to(|| HttpResponse::MethodNotAllowed()),
+                    ),
+            )
+    })
+    .bind(endpoint)?
+    .run();
+    // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
+    // `io::Result<()>`, there is error and `into()` is needed.
+    // expected struct `std::boxed::Box`, found struct `std::io::Error`
+    // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
+    //.map_err(|e| e.into())
+    let _ = sys.run();
+    Ok(())
 }
