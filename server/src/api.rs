@@ -7,7 +7,6 @@ use postgres::{Client, NoTls};
 use std::env;
 
 use actix_web::{web, Error as ActixError, FromRequest, HttpRequest, HttpResponse};
-use futures::future::{result, Future};
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -38,7 +37,7 @@ fn get_client() -> Client {
     Client::connect(&connection_string, NoTls).unwrap()
 }
 
-pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
+pub async fn user_information(_req: HttpRequest) -> Result<HttpResponse, ActixError> {
     let mut client = get_client();
     let user_id = 1;
     let rows = client.query(
@@ -67,7 +66,7 @@ pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, E
         magicUrl: row.get(3),
         notifications,
     };
-    result(Ok(HttpResponse::Ok().json(s)))
+    Ok(HttpResponse::Ok().json(s))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,7 +75,7 @@ struct DataSet {
     name: String,
 }
 
-pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
+pub async fn data_sets(_req: HttpRequest) -> Result<HttpResponse, ActixError> {
     let mut client = get_client();
     let mut data_sets = Vec::new();
 
@@ -93,7 +92,7 @@ pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = 
         println!("Found DataSet {}", &data_set.name);
         data_sets.push(data_set);
     }
-    result(Ok(HttpResponse::Ok().json(data_sets)))
+    Ok(HttpResponse::Ok().json(data_sets))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,10 +112,8 @@ struct Comment {
 }
 
 // test url: /dataSets/name-of-data-set
-pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
+pub async fn data_set(url: web::Path<String>) -> Result<HttpResponse, ActixError> {
     let mut client = get_client();
-
-    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
 
     let url2 = "dataSets/".to_owned() + &url;
     let rows = client
@@ -148,7 +145,7 @@ pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Ac
         name: row.get(1),
         comments,
     };
-    result(Ok(HttpResponse::Ok().json(s)))
+    Ok(HttpResponse::Ok().json(s))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -164,9 +161,8 @@ struct DataSetShort {
 }
 
 // test url: /dataSetsCategories/dataSets
-pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
+pub async fn data_set_category(url: web::Path<String>) -> Result<HttpResponse, ActixError> {
     let mut client = get_client();
-    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
     let url2 = "dataSetsCategories/".to_owned() + &url;
     let rows = client
         .query(
@@ -195,7 +191,7 @@ pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, E
         url: dataSetShortRow.get(7),
     };
 
-    result(Ok(HttpResponse::Ok().json(s)))
+    Ok(HttpResponse::Ok().json(s))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -217,9 +213,7 @@ struct Subcategory {
     contentUrl: String,
 }
 
-pub fn data_sets_categories(
-    _req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = ActixError> {
+pub async fn data_sets_categories(_req: HttpRequest) -> Result<HttpResponse, ActixError> {
     let mut client = get_client();
     let mut categories = Vec::new();
     for row in client
@@ -263,7 +257,7 @@ pub fn data_sets_categories(
         println!("Found Category {}", &category.title);
         categories.push(category);
     }
-    result(Ok(HttpResponse::Ok().json(categories)))
+    Ok(HttpResponse::Ok().json(categories))
 }
 
 /*
