@@ -49,3 +49,7 @@ You will get `dist/js/env.js` which is loaded to elm through flags.
 ## Linter elm make - don't compile twice
 
 https://gist.github.com/rofrol/fd46e9570728193fddcc234094a0bd99#atom-editor-and-linter-elm-make---dont-compile-twice
+
+## Migrating to newer actix-web
+
+- https://github.com/actix/actix-web/blob/master/MIGRATION.md
