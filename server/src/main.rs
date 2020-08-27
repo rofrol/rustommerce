@@ -177,11 +177,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let connection_string = format!(
         "postgres://{}:{}@{}:{}/{}",
-        &env::var("DBUSER").unwrap(),
-        &env::var("DBPASS").unwrap(),
-        &env::var("DBHOST").unwrap(),
-        &env::var("DBPORT").unwrap(),
-        &env::var("DBNAME").unwrap(),
+        &env::var("DBUSER")?,
+        &env::var("DBPASS")?,
+        &env::var("DBHOST")?,
+        &env::var("DBPORT")?,
+        &env::var("DBNAME")?,
     );
     let pg_config: tokio_postgres::Config = connection_string.parse()?;
     let mgr_config = ManagerConfig {

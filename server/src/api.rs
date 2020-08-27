@@ -11,6 +11,7 @@ mod errors {
     #[derive(Display, From, Debug)]
     pub enum MyError {
         NotFound,
+        NonError,
         PGError(PGError),
         PoolError(PoolError),
     }
@@ -81,7 +82,7 @@ async fn get_user_information(client: &Client) -> Result<UserInformation, errors
 }
 
 pub async fn user_information(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
-    let client: Client = db_pool.get().await.unwrap();
+    let client: Client = db_pool.get().await.map_err(errors::MyError::PoolError)?;
     let user_information = get_user_information(&client).await?;
     Ok(HttpResponse::Ok().json(user_information))
 }
@@ -93,7 +94,7 @@ struct DataSet {
 }
 
 pub async fn data_sets(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
-    let client: Client = db_pool.get().await.unwrap();
+    let client: Client = db_pool.get().await.map_err(errors::MyError::PoolError)?;
     let mut data_sets = Vec::new();
 
     for row in client
@@ -188,7 +189,7 @@ pub async fn data_set_category(
     url: web::Path<String>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ActixError> {
-    let client: Client = db_pool.get().await.unwrap();
+    let client: Client = db_pool.get().await.map_err(errors::MyError::PoolError)?;
     let url2 = "dataSetsCategories/".to_owned() + &url;
     let rows = client
         .query(
@@ -197,7 +198,9 @@ pub async fn data_set_category(
         )
         .await
         .map_err(errors::MyError::PGError)?;
-    let row = rows.into_iter().next().unwrap();
+    // https://www.reddit.com/r/rust/comments/bod7eq/how_to_use_with_option_and_result/enesbnp/?utm_source=reddit&utm_medium=web2x&context=3
+    // https://github.com/rust-lang/rust/issues/46871
+    let row = rows.into_iter().next().ok_or(errors::MyError::NonError)?;
     let category_id: i32 = row.get(0);
 
     let dataSetShortRows = client.query(r#"select d.id, name, SUBSTRING(description,0,100) as description, owner, "releaseDate",
@@ -206,7 +209,10 @@ pub async fn data_set_category(
                     &[&category_id])
         .await
         .map_err(errors::MyError::PGError)?;
-    let dataSetShortRow = dataSetShortRows.into_iter().next().unwrap();
+    let dataSetShortRow = dataSetShortRows
+        .into_iter()
+        .next()
+        .ok_or(errors::MyError::NonError)?;
 
     let s = DataSetShort {
         id: dataSetShortRow.get(0),
@@ -242,7 +248,7 @@ struct Subcategory {
 }
 
 pub async fn data_sets_categories(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
-    let client: Client = db_pool.get().await.unwrap();
+    let client: Client = db_pool.get().await.map_err(errors::MyError::PoolError)?;
     let mut categories = Vec::new();
     for row in client
         .query(
