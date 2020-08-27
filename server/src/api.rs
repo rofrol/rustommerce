@@ -288,7 +288,7 @@ pub async fn data_sets_categories(db_pool: web::Data<Pool>) -> Result<HttpRespon
             route: row.get(2),
             count: row.get(3),
             contentUrl: row.get(4),
-            subcategories: subcategories,
+            subcategories,
         };
         println!("Found Category {}", &category.title);
         categories.push(category);

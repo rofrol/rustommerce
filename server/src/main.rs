@@ -22,7 +22,7 @@ use tinytemplate::TinyTemplate;
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
-static TEMPLATE: &'static str = "Hello {name}!";
+static TEMPLATE: &str = "Hello {name}!";
 
 #[derive(Serialize)]
 struct Context {
@@ -46,7 +46,7 @@ async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
     let context = TemplateContext {
         parent: "index".to_owned(),
         name: "Roman".to_owned(),
-        content: s.to_owned(),
+        content: s,
         items: vec!["One", "Two", "Three"]
             .iter()
             .map(|s| s.to_string())
@@ -194,7 +194,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tt.add_template("hello", TEMPLATE)?;
 
     let context = Context {
-        name: "World".to_string(),
+        name: "TinyTemplate".to_string(),
     };
 
     let rendered = tt.render("hello", &context)?;
@@ -228,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .route(
                         web::route()
                             .guard(guard::Not(guard::Get()))
-                            .to(|| HttpResponse::MethodNotAllowed()),
+                            .to(HttpResponse::MethodNotAllowed),
                     ),
             )
     })
@@ -240,8 +240,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
     //.map_err(|e| e.into())
 
-    let _ = sys.run();
     println!("Server running at {:?}", endpoint);
+    let _ = sys.run();
 
     Ok(())
 }
