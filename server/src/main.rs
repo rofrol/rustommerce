@@ -11,18 +11,16 @@ use serde_derive::Serialize;
 use dotenv::dotenv;
 use std::env;
 
-use actix_web::{
-    guard, middleware, web, App, Error as ActixError, FromRequest, HttpRequest, HttpResponse,
-    HttpServer,
-};
-
-use futures::future::{result, Future};
+use actix_web::{guard, middleware, web, App, Error as ActixError, HttpResponse, HttpServer};
 
 use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
 use typed_html::{dom::DOMTree, html, text, OutputType};
 
 use tinytemplate::TinyTemplate;
+
+use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
+use tokio_postgres::NoTls;
 
 static TEMPLATE: &'static str = "Hello {name}!";
 
@@ -42,10 +40,9 @@ struct TemplateContext {
 use std::path;
 use std::process::Command;
 
-fn template(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let ssr = *web::Path::<bool>::extract(&req).expect("Path extract failed");
+async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
     let s2 = getStr();
-    let s: String = if ssr { s2.to_owned() } else { "".to_owned() };
+    let s: String = if *ssr { s2.to_owned() } else { "".to_owned() };
     let context = TemplateContext {
         parent: "index".to_owned(),
         name: "Roman".to_owned(),
@@ -82,9 +79,7 @@ fn template(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixE
     // https://users.rust-lang.org/t/how-to-create-a-macro-from-dynamic-content/5079
     doc_str = doc_str.replacen("DYNAMIC_CONTENT", &s2, 1);
 
-    result(Ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body(doc_str)))
+    Ok(HttpResponse::Ok().content_type("text/html").body(doc_str))
 }
 
 fn doc<T: OutputType + 'static + Send>(
@@ -174,15 +169,26 @@ fn getStr() -> String {
         .collect()
 }
 
-// TODO: Do I need this 'static + Send + Sync? Or maybe only 'static?
-//fn main() -> Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
     let endpoint = format!("127.0.0.1:{}", env::var("SERVER_PORT")?);
 
-    println!("Starting server at: {:?}", endpoint);
+    let connection_string = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        &env::var("DBUSER").unwrap(),
+        &env::var("DBPASS").unwrap(),
+        &env::var("DBHOST").unwrap(),
+        &env::var("DBPORT").unwrap(),
+        &env::var("DBNAME").unwrap(),
+    );
+    let pg_config: tokio_postgres::Config = connection_string.parse()?;
+    let mgr_config = ManagerConfig {
+        recycling_method: RecyclingMethod::Fast,
+    };
+    let mgr = Manager::from_config(pg_config, NoTls, mgr_config);
+    let pool = Pool::new(mgr, 16);
 
     let mut tt = TinyTemplate::new();
     tt.add_template("hello", TEMPLATE)?;
@@ -194,22 +200,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rendered = tt.render("hello", &context)?;
     println!("{}", rendered);
 
-    HttpServer::new(|| {
+    let sys = actix_rt::System::new("app");
+    HttpServer::new(move || {
         App::new()
+            .data(pool.clone())
             .wrap(middleware::Logger::default())
-            .service(web::resource("/template/{ssr}").route(web::get().to_async(template)))
-            .service(
-                web::resource("/userInformation").route(web::get().to_async(api::user_information)),
-            )
-            .service(web::resource("/dataSets").route(web::get().to_async(api::data_sets)))
-            .service(web::resource("/dataSets/{url}").route(web::get().to_async(api::data_set)))
+            .service(web::resource("/template/{ssr}").route(web::get().to(template)))
+            .service(web::resource("/userInformation").route(web::get().to(api::user_information)))
+            .service(web::resource("/dataSets").route(web::get().to(api::data_sets)))
+            .service(web::resource("/dataSets/{url}").route(web::get().to(api::data_set)))
             .service(
                 web::resource("/dataSetsCategories")
-                    .route(web::get().to_async(api::data_sets_categories)),
+                    .route(web::get().to(api::data_sets_categories)),
             )
             .service(
                 web::resource("/dataSetsCategories/{url}")
-                    .route(web::get().to_async(api::data_set_category)),
+                    .route(web::get().to(api::data_set_category)),
             )
             .service(web::resource("/favicon").route(web::get().to(files::favicon)))
             .service(web::resource("/styles/{file:.*}").route(web::get().to(files::styles)))
@@ -226,11 +232,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ),
             )
     })
-    .bind(endpoint)?
-    .run()
+    .bind(&endpoint)?
+    .run();
     // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
     // `io::Result<()>`, there is error and `into()` is needed.
     // expected struct `std::boxed::Box`, found struct `std::io::Error`
     // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
-    .map_err(|e| e.into())
+    //.map_err(|e| e.into())
+
+    let _ = sys.run();
+    println!("Server running at {:?}", endpoint);
+
+    Ok(())
 }

@@ -2,14 +2,38 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
-use postgres::{Client, NoTls};
+mod errors {
+    use actix_web::{HttpResponse, ResponseError};
+    use deadpool_postgres::PoolError;
+    use derive_more::{Display, From};
+    use tokio_postgres::error::Error as PGError;
 
-use std::env;
+    #[derive(Display, From, Debug)]
+    pub enum MyError {
+        NotFound,
+        PGError(PGError),
+        PoolError(PoolError),
+    }
+    impl std::error::Error for MyError {}
 
-use actix_web::{web, Error as ActixError, FromRequest, HttpRequest, HttpResponse};
-use futures::future::{result, Future};
+    impl ResponseError for MyError {
+        fn error_response(&self) -> HttpResponse {
+            match *self {
+                MyError::NotFound => HttpResponse::NotFound().finish(),
+                MyError::PoolError(ref err) => {
+                    HttpResponse::InternalServerError().body(err.to_string())
+                }
+                _ => HttpResponse::InternalServerError().finish(),
+            }
+        }
+    }
+}
+
+use actix_web::{web, Error as ActixError, HttpResponse};
 
 use serde_derive::{Deserialize, Serialize};
+
+use deadpool_postgres::{Client, Pool};
 
 #[derive(Serialize, Deserialize)]
 struct UserInformation {
@@ -26,25 +50,11 @@ struct Notification {
     status: bool,
 }
 
-fn get_client() -> Client {
-    let connection_string = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        &env::var("DBUSER").unwrap(),
-        &env::var("DBPASS").unwrap(),
-        &env::var("DBHOST").unwrap(),
-        &env::var("DBPORT").unwrap(),
-        &env::var("DBNAME").unwrap(),
-    );
-    Client::connect(&connection_string, NoTls).unwrap()
-}
-
-pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let mut client = get_client();
+async fn get_user_information(client: &Client) -> Result<UserInformation, errors::MyError> {
     let user_id = 1;
     let rows = client.query(
     r#"SELECT "userId", name, surname, "magicUrl" FROM user_information where "userId" = $1"#,
-                           &[&user_id])
-                    .expect("Query failed");
+                           &[&user_id]).await?;
     let row = rows.into_iter().next().expect("No next row");
 
     let mut notifications = Vec::new();
@@ -52,6 +62,7 @@ pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, E
         r#"select context, status from user_information as u join notifications as n on n."userId"
          = u."userId" and u."userId" = $1"#,
                            &[&user_id])
+                    .await
                     .expect("Query failed") {
         let notification = Notification {
             context: row.get(0),
@@ -60,14 +71,19 @@ pub fn user_information(_req: HttpRequest) -> impl Future<Item = HttpResponse, E
         notifications.push(notification);
     }
 
-    let s = UserInformation {
+    Ok(UserInformation {
         userId: row.get(0),
         name: row.get(1),
         surname: row.get(2),
         magicUrl: row.get(3),
         notifications,
-    };
-    result(Ok(HttpResponse::Ok().json(s)))
+    })
+}
+
+pub async fn user_information(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
+    let client: Client = db_pool.get().await.unwrap();
+    let user_information = get_user_information(&client).await?;
+    Ok(HttpResponse::Ok().json(user_information))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,13 +92,14 @@ struct DataSet {
     name: String,
 }
 
-pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let mut client = get_client();
+pub async fn data_sets(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
+    let client: Client = db_pool.get().await.unwrap();
     let mut data_sets = Vec::new();
 
     for row in client
         .query("SELECT id, name FROM data_sets", &[])
-        .expect("Query failed")
+        .await
+        .map_err(errors::MyError::PGError)?
     {
         let data_set = DataSet {
             id: row.get(0),
@@ -93,7 +110,7 @@ pub fn data_sets(_req: HttpRequest) -> impl Future<Item = HttpResponse, Error = 
         println!("Found DataSet {}", &data_set.name);
         data_sets.push(data_set);
     }
-    result(Ok(HttpResponse::Ok().json(data_sets)))
+    Ok(HttpResponse::Ok().json(data_sets))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,15 +130,17 @@ struct Comment {
 }
 
 // test url: /dataSets/name-of-data-set
-pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let mut client = get_client();
-
-    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
+pub async fn data_set(
+    url: web::Path<String>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ActixError> {
+    let client: Client = db_pool.get().await.map_err(errors::MyError::PoolError)?;
 
     let url2 = "dataSets/".to_owned() + &url;
     let rows = client
         .query("SELECT id, name FROM data_sets where url = $1", &[&url2])
-        .expect("Query failed");
+        .await
+        .map_err(errors::MyError::PGError)?;
     let row = rows.into_iter().next().expect("No next row");
     let data_set_id: i32 = row.get(0);
 
@@ -131,7 +150,8 @@ pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Ac
             r#"select c.id, content, "userName", "userPhotoUrl", date from comments as c join data_sets as d on c.data_set_id = d.id and d.id = $1"#,
             &[&data_set_id],
         )
-        .expect("Query failed")
+        .await
+        .map_err(errors::MyError::PGError)?
     {
         let comment = Comment {
             id: row.get(0),
@@ -148,7 +168,7 @@ pub fn data_set(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Ac
         name: row.get(1),
         comments,
     };
-    result(Ok(HttpResponse::Ok().json(s)))
+    Ok(HttpResponse::Ok().json(s))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -164,16 +184,19 @@ struct DataSetShort {
 }
 
 // test url: /dataSetsCategories/dataSets
-pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let mut client = get_client();
-    let url = web::Path::<String>::extract(&req).expect("Path extract failed");
+pub async fn data_set_category(
+    url: web::Path<String>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ActixError> {
+    let client: Client = db_pool.get().await.unwrap();
     let url2 = "dataSetsCategories/".to_owned() + &url;
     let rows = client
         .query(
             r#"select id from categories where "contentUrl" = $1"#,
             &[&url2],
         )
-        .unwrap();
+        .await
+        .map_err(errors::MyError::PGError)?;
     let row = rows.into_iter().next().unwrap();
     let category_id: i32 = row.get(0);
 
@@ -181,7 +204,8 @@ pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, E
         rating, favourite, url from data_sets d join data_sets_in_categories di on d.id = di.data_sets_id
         and di.categories_id = $1"#,
                     &[&category_id])
-             .unwrap();
+        .await
+        .map_err(errors::MyError::PGError)?;
     let dataSetShortRow = dataSetShortRows.into_iter().next().unwrap();
 
     let s = DataSetShort {
@@ -195,7 +219,7 @@ pub fn data_set_category(req: HttpRequest) -> impl Future<Item = HttpResponse, E
         url: dataSetShortRow.get(7),
     };
 
-    result(Ok(HttpResponse::Ok().json(s)))
+    Ok(HttpResponse::Ok().json(s))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -217,10 +241,8 @@ struct Subcategory {
     contentUrl: String,
 }
 
-pub fn data_sets_categories(
-    _req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = ActixError> {
-    let mut client = get_client();
+pub async fn data_sets_categories(db_pool: web::Data<Pool>) -> Result<HttpResponse, ActixError> {
+    let client: Client = db_pool.get().await.unwrap();
     let mut categories = Vec::new();
     for row in client
         .query(
@@ -228,7 +250,8 @@ pub fn data_sets_categories(
              where type = 'dataSet' and "parentId" is null"#,
             &[],
         )
-        .unwrap()
+        .await
+        .map_err(errors::MyError::PGError)?
     {
         let row_id: i32 = row.get(0);
 
@@ -239,7 +262,8 @@ pub fn data_sets_categories(
                  where type = 'dataSet' and "parentId" = $1"#,
                 &[&row_id],
             )
-            .unwrap()
+            .await
+            .map_err(errors::MyError::PGError)?
         {
             let subcategory = Subcategory {
                 id: subcategoryRow.get(0),
@@ -263,90 +287,5 @@ pub fn data_sets_categories(
         println!("Found Category {}", &category.title);
         categories.push(category);
     }
-    result(Ok(HttpResponse::Ok().json(categories)))
+    Ok(HttpResponse::Ok().json(categories))
 }
-
-/*
-use std::fs::File;
-use std::io::{BufWriter, Write};
-
-#[post("/dataSets/new", data = "<upload>")]
-fn data_sets_new(upload: DataSetMultipart) -> CORS<String> {
-    let f = File::create("plik").expect("Unable to create file");
-    let mut f = BufWriter::new(f);
-    f.write_all(&*upload.metadata)
-        .expect("Unable to write data");
-    CORS::any(format!("I read this: {:?}", upload))
-}
-
-#[derive(Debug)]
-struct DataSetMultipart {
-    name: String,
-    description: String,
-    categoryId: i32,
-    metadata: Vec<u8>,
-}
-
-use std::io::{Cursor, Read};
-
-impl FromData for DataSetMultipart {
-    type Error = ();
-
-    fn from_data(request: &Request, data: Data) -> data::Outcome<Self, Self::Error> {
-        // All of these errors should be reported
-        let ct = request
-            .headers()
-            .get_one("Content-Type")
-            .expect("no content-type");
-        let idx = ct.find("boundary=").expect("no boundary");
-        let boundary = &ct[(idx + "boundary=".len())..];
-
-        let mut d = Vec::new();
-        data.stream_to(&mut d).expect("Unable to read");
-
-        let mut mp = Multipart::with_body(Cursor::new(d), boundary);
-
-        // Custom implementation parts
-
-        let mut name = None;
-        let mut description = None;
-        let mut categoryId = None;
-        let mut metadata = None;
-
-        mp.foreach_entry(|mut entry| match entry.name.as_str() {
-            "name" => {
-                let t = entry.data.as_text().expect("not text");
-                name = Some(t.into());
-            }
-            "description" => {
-                let t = entry.data.as_text().expect("not text");
-                description = Some(t.into());
-            }
-            "categoryId" => {
-                let t = entry.data.as_text().expect("not text");
-                let n = t.parse().expect("not number");
-                categoryId = Some(n);
-            }
-            "metadata" => {
-                let mut d = Vec::new();
-                let f = entry.data.as_file().expect("not file");
-                f.read_to_end(&mut d).expect("can't read");
-                metadata = Some(d);
-            }
-            other => panic!("No known key {}", other),
-        })
-        .expect("Unable to iterate");
-
-        let v = DataSetMultipart {
-            name: name.expect("name not set"),
-            description: description.expect("description not set"),
-            categoryId: categoryId.expect("categoryId not set"),
-            metadata: metadata.expect("file not set"),
-        };
-
-        // End custom
-
-        Outcome::Success(v)
-    }
-}
-*/
