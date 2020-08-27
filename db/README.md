@@ -9,7 +9,7 @@ Unpack zip and extracted `/path/to/psql/bin` to `PATH` env.
 ## Init
 
 ```shell
-./setup.sh
+./start.sh
 ./database_and_user.sh
 ./populate.sh
 ```
