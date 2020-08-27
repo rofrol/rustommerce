@@ -55,23 +55,23 @@ async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
 
     let doc: DOMTree<String> = doc(
         html!(
-            <div>
-                <h1>"Hello Kitty"</h1>
-                <p class="official">
-                    "She is not a cat. She is a human girl."
-                </p>
-                { (0..3).map(|_| html!(
-                    <p class="emphasis">
-                        "Her name is Kitty White."
-                    </p>
-                )) }
-                <p class="citation-needed">
-                    "We still don't know how she eats."
-                </p>
-                <h1>"Hello Kitty"</h1>
-                "DYNAMIC_CONTENT"
-            </div>
-        ),
+                    <div>
+                        <h1>"Hello Kitty"</h1>
+                        <p class="official">
+                            "She is not a cat. She is a human girl."
+                        </p>
+                        { (0..3).map(|_| html!(
+                            <p class="emphasis">
+                                "Her name is Kitty White."
+                            </p>
+                        )) }
+                        <p class="citation-needed">
+                            "We still don't know how she eats."
+        </p>
+                        <h1>"Hello Kitty"</h1>
+                        "DYNAMIC_CONTENT"
+                    </div>
+                ),
         context,
     );
     let mut doc_str = "<!doctype html>".to_owned() + &doc.to_string();
@@ -234,6 +234,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .bind(&endpoint)?
     .run();
+    // If you do not return `Ok(())` but just `.run()`, this will happend:
     // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
     // `io::Result<()>`, there is error and `into()` is needed.
     // expected struct `std::boxed::Box`, found struct `std::io::Error`
