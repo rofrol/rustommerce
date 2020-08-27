@@ -141,7 +141,7 @@ fn getStr() -> String {
                     Model [] HomeRoute <|
                         Flags "" {time} ""
             "#,
-            time = time::get_time().sec
+            time = time::OffsetDateTime::unix_epoch().second()
         );
 
         main_file

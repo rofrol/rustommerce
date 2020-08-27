@@ -10,9 +10,9 @@ serde = "1.0.115"
 serde_json = "1.0.57"
 serde_derive = "1.0.115"
 dotenv = "0.15.0"
-time = "0.1.42"
+time = "0.2.16"
 actix-web = "2.0.0"
-actix-rt = "1.0.0"
+actix-rt = "1.1.1"
 env_logger = "0.7.1"
 typed-html = { git = "https://github.com/bodil/typed-html#4c13ecca" }
 typed-html-macros = { git = "https://github.com/bodil/typed-html#4c13ecca" }
