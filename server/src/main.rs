@@ -11,18 +11,16 @@ use serde_derive::Serialize;
 use dotenv::dotenv;
 use std::env;
 
-use actix_rt::System;
-
-use actix_web::{
-    guard, middleware, web, App, Error as ActixError, FromRequest, HttpRequest, HttpResponse,
-    HttpServer,
-};
+use actix_web::{guard, middleware, web, App, Error as ActixError, HttpResponse, HttpServer};
 
 use typed_html::elements::FlowContent;
 use typed_html::types::Metadata;
 use typed_html::{dom::DOMTree, html, text, OutputType};
 
 use tinytemplate::TinyTemplate;
+
+use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
+use tokio_postgres::NoTls;
 
 static TEMPLATE: &'static str = "Hello {name}!";
 
@@ -177,7 +175,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let endpoint = format!("127.0.0.1:{}", env::var("SERVER_PORT")?);
 
-    println!("Starting server at: {:?}", endpoint);
+    let connection_string = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        &env::var("DBUSER").unwrap(),
+        &env::var("DBPASS").unwrap(),
+        &env::var("DBHOST").unwrap(),
+        &env::var("DBPORT").unwrap(),
+        &env::var("DBNAME").unwrap(),
+    );
+    let pg_config: tokio_postgres::Config = connection_string.parse()?;
+    let mgr_config = ManagerConfig {
+        recycling_method: RecyclingMethod::Fast,
+    };
+    let mgr = Manager::from_config(pg_config, NoTls, mgr_config);
+    let pool = Pool::new(mgr, 16);
 
     let mut tt = TinyTemplate::new();
     tt.add_template("hello", TEMPLATE)?;
@@ -190,8 +201,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", rendered);
 
     let sys = actix_rt::System::new("app");
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
+            .data(pool.clone())
             .wrap(middleware::Logger::default())
             .service(web::resource("/template/{ssr}").route(web::get().to(template)))
             .service(web::resource("/userInformation").route(web::get().to(api::user_information)))
@@ -220,13 +232,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ),
             )
     })
-    .bind(endpoint)?
+    .bind(&endpoint)?
     .run();
     // When main returns `Result<(), Box<dyn std::error::Error + 'static + Send + Sync>> instead of
     // `io::Result<()>`, there is error and `into()` is needed.
     // expected struct `std::boxed::Box`, found struct `std::io::Error`
     // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
     //.map_err(|e| e.into())
+
     let _ = sys.run();
+    println!("Server running at {:?}", endpoint);
+
     Ok(())
 }

@@ -1,5 +1,5 @@
 use actix_files as fs;
-use actix_web::{web, FromRequest, HttpRequest};
+use actix_web::{web, HttpRequest};
 
 // use std::io;
 use std::path::{Path, PathBuf};

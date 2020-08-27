@@ -19,3 +19,6 @@ typed-html-macros = { git = "https://github.com/bodil/typed-html#4c13ecca" }
 futures = "0.3.5"
 actix-files = "0.2.2"
 tinytemplate = "1.1.0"
+deadpool-postgres = "0.5.6"
+tokio-postgres = "0.5.5"
+derive_more = "0.99.9"
