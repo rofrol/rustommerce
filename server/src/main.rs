@@ -23,7 +23,6 @@ use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 static TEMPLATE: &str = "Hello {name}!";
-
 #[derive(Serialize)]
 struct Context {
     name: String,
@@ -183,6 +182,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &env::var("DBPORT")?,
         &env::var("DBNAME")?,
     );
+    // Idea for parse from
+    // https://github.com/OneSignal/L3-37/blob/2031639d1f3a7aa00a5a741b87b464e19d995d21/l337-postgres/src/lib.rs#L217
     let pg_config: tokio_postgres::Config = connection_string.parse()?;
     let mgr_config = ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
