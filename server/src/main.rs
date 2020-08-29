@@ -1,8 +1,6 @@
-#![cfg(feature = "alloc")]
-#![recursion_limit = "256"]
+//#![recursion_limit = "256"]
 // http://stackoverflow.com/questions/25877285/how-to-disable-unused-code-warnings-in-rust
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
-#![allow(non_snake_case)]
 
 mod api;
 mod files;
@@ -14,21 +12,13 @@ use std::env;
 
 use actix_web::{guard, middleware, web, App, Error as ActixError, HttpResponse, HttpServer};
 
-use typed_html::elements::FlowContent;
-use typed_html::types::Metadata;
-use typed_html::{dom::DOMTree, html, text, OutputType};
-
-use tinytemplate::TinyTemplate;
-
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 #[macro_use]
 extern crate horrorshow;
-
 use horrorshow::helper::doctype;
-use horrorshow::prelude::*;
-use horrorshow::{Raw, RenderBox, Template};
+use horrorshow::{RenderBox, Template};
 
 static TEMPLATE: &str = "Hello {name}!";
 #[derive(Serialize)]
@@ -48,79 +38,29 @@ use std::path;
 use std::process::Command;
 
 async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
-    let s2 = getStr();
-    let s: String = if *ssr { s2.to_owned() } else { "".to_owned() };
-    let context = TemplateContext {
-        parent: "index".to_owned(),
-        name: "Roman".to_owned(),
-        content: s,
-        items: vec!["One", "Two", "Three"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect(),
+    let s: String = if *ssr {
+        let s2 = getStr();
+        s2.to_owned()
+    } else {
+        "".to_owned()
     };
 
-    let doc: DOMTree<String> = doc(
-        html!(
-                    <div>
-                        <h1>"Hello Kitty"</h1>
-                        <p class="official">
-                            "She is not a cat. She is a human girl."
-                        </p>
-                        { (0..3).map(|_| html!(
-                            <p class="emphasis">
-                                "Her name is Kitty White."
-                            </p>
-                        )) }
-                        <p class="citation-needed">
-                            "We still don't know how she eats."
-        </p>
-                        <h1>"Hello Kitty"</h1>
-                        "DYNAMIC_CONTENT"
-                    </div>
-                ),
-        context,
-    );
-    let mut doc_str = "<!doctype html>".to_owned() + &doc.to_string();
+    let posts = vec![
+        Post {
+            title: String::from("First Post"),
+            tags: vec![String::from("first post")],
+            body: String::from("My Test Post"),
+        },
+        Post {
+            title: String::from("Second Post"),
+            tags: vec![],
+            body: String::from("My Second Test Post"),
+        },
+    ];
 
-    // https://users.rust-lang.org/t/how-to-create-a-macro-from-dynamic-content/5079
-    doc_str = doc_str.replacen("DYNAMIC_CONTENT", &s2, 1);
+    let doc_str = render("my blog", posts.into_iter(), &s.to_owned());
 
     Ok(HttpResponse::Ok().content_type("text/html").body(doc_str))
-}
-
-fn doc<T: OutputType + 'static + Send>(
-    tree: Box<dyn FlowContent<T>>,
-    context: TemplateContext,
-) -> DOMTree<T> {
-    let TemplateContext { name, items, .. } = context;
-    html!(
-        <html>
-            <head>
-                <title>"Hello Kitty"</title>
-                <meta charset="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="icon" href="/favicon.ico?v=1" />
-                <link href="/styles/normalize.css" rel="stylesheet" type="text/css" media="all" />
-                <link href="/styles/style.css" rel="stylesheet" type="text/css" media="all" />
-                <base href="/"></base>
-                <meta name=Metadata::Author content="Not Sanrio Co., Ltd" />
-            </head>
-            <body>
-                 <h1>{text!("{}", name)}</h1>
-                 <h3>"Here are your items:"</h3>
-                 <ul>
-                    {
-                     items.iter().map(|item| html!(
-                           <li>{text!("{}", item)}</li>
-                     ))
-                    }
-                 </ul>
-                 { tree }
-                <p>"Try going to "<a href="/hello/YourName">"/hello/YourName"</a></p>
-            </body>
-        </html>
-    )
 }
 
 use std::fs;
@@ -155,6 +95,7 @@ fn getStr() -> String {
             .write_all(str1.as_bytes())
             .expect("file content not saved");
 
+        // npm i -g elm
         stdout = Command::new("node")
             .current_dir(&path::Path::new("../client"))
             .arg("./node_modules/elm-static-html/index.js")
@@ -169,6 +110,8 @@ fn getStr() -> String {
         "../client/src/elm/Main.elm",
     )
     .expect("file not renamed");
+
+    println!("stdout: {:?}", stdout);
 
     String::from_utf8_lossy(&*stdout)
         .lines()
@@ -193,9 +136,9 @@ fn render_post(post: Post) -> Box<dyn RenderBox> {
     }
 }
 
-fn render<I: Iterator<Item = Post>>(title: &str, posts: I) -> String {
+fn render<I: Iterator<Item = Post>>(title: &str, posts: I, elm_string: &str) -> String {
     (html! {
-        : Raw("<!DOCTYPE html>");
+        : doctype::HTML;
         html {
             head {
                 title : title
@@ -208,6 +151,7 @@ fn render<I: Iterator<Item = Post>>(title: &str, posts: I) -> String {
                             : render_post(post)
                         }
                     }
+                    div: elm_string
                 }
             }
         }
@@ -250,30 +194,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mgr = Manager::from_config(pg_config, NoTls, mgr_config);
     let pool = Pool::new(mgr, 16);
-
-    let mut tt = TinyTemplate::new();
-    tt.add_template("hello", TEMPLATE)?;
-
-    let context = Context {
-        name: "TinyTemplate".to_string(),
-    };
-
-    let rendered = tt.render("hello", &context)?;
-    println!("{}", rendered);
-
-    let posts = vec![
-        Post {
-            title: String::from("First Post"),
-            tags: vec![String::from("first post")],
-            body: String::from("My Test Post"),
-        },
-        Post {
-            title: String::from("Second Post"),
-            tags: vec![],
-            body: String::from("My Second Test Post"),
-        },
-    ];
-    println!("{}", render("my blog", posts.into_iter()));
 
     let sys = actix_rt::System::new("app");
     HttpServer::new(move || {
