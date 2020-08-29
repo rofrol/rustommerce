@@ -22,6 +22,8 @@ use tinytemplate::TinyTemplate;
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
+use std::path::Path;
+
 static TEMPLATE: &str = "Hello {name}!";
 #[derive(Serialize)]
 struct Context {
@@ -169,7 +171,13 @@ fn getStr() -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+    // Error: NotPresent
+    // Chaning to specific file, bc `strace ./target/debug/rustommerce` shown,
+    // that dotenv searches up for .env till it reaches /
+    // https://galenguyer.com/blog/2020/05/19/docker-rust-notpresent
+    let my_path = env::current_dir().and_then(|a| Ok(a.join("../.env")))?;
+    dotenv::from_path(my_path.as_path());
+
     env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
     let endpoint = format!("127.0.0.1:{}", env::var("SERVER_PORT")?);
