@@ -8,7 +8,7 @@ mod files;
 
 use serde_derive::Serialize;
 
-use dotenv::dotenv;
+use dotenv;
 use std::env;
 
 use actix_web::{guard, middleware, web, App, Error as ActixError, HttpResponse, HttpServer};
@@ -21,8 +21,6 @@ use tinytemplate::TinyTemplate;
 
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
-
-use std::path::Path;
 
 static TEMPLATE: &str = "Hello {name}!";
 #[derive(Serialize)]
@@ -176,7 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // that dotenv searches up for .env till it reaches /
     // https://galenguyer.com/blog/2020/05/19/docker-rust-notpresent
     let my_path = env::current_dir().map(|a| a.join("../.env"))?;
-    dotenv::from_path(my_path.as_path());
+    dotenv::from_path(my_path.as_path())?;
 
     env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
