@@ -20,7 +20,6 @@ extern crate horrorshow;
 use horrorshow::helper::doctype;
 use horrorshow::{RenderBox, Template};
 
-static TEMPLATE: &str = "Hello {name}!";
 #[derive(Serialize)]
 struct Context {
     name: String,
@@ -33,9 +32,6 @@ struct TemplateContext {
     content: String,
     items: Vec<String>,
 }
-
-use std::path;
-use std::process::Command;
 
 async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
     let s: String = if *ssr {
