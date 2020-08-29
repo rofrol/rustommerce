@@ -39,10 +39,9 @@ use std::process::Command;
 
 async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
     let s: String = if *ssr {
-        let s2 = getStr();
-        s2.to_owned()
+        "true".to_owned()
     } else {
-        "".to_owned()
+        "false".to_owned()
     };
 
     let posts = vec![
@@ -61,62 +60,6 @@ async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
     let doc_str = render("my blog", posts.into_iter(), &s.to_owned());
 
     Ok(HttpResponse::Ok().content_type("text/html").body(doc_str))
-}
-
-use std::fs;
-use std::fs::OpenOptions;
-use std::io::prelude::*;
-
-fn getStr() -> String {
-    fs::copy(
-        "../client/src/elm/Main.elm",
-        "../client/src/elm/Main.elm.bak",
-    )
-    .expect("file not copied");
-    let stdout: Vec<u8>;
-    {
-        let mut main_file = OpenOptions::new()
-            .append(true)
-            .open("../client/src/elm/Main.elm")
-            .expect("file not opened");
-
-        let str1 = format!(
-            r#"
-            view : Html Msg
-            view =
-                viewWithModel <|
-                    Model [] HomeRoute <|
-                        Flags "" {time} ""
-            "#,
-            time = time::OffsetDateTime::unix_epoch().second()
-        );
-
-        main_file
-            .write_all(str1.as_bytes())
-            .expect("file content not saved");
-
-        // npm i -g elm
-        stdout = Command::new("node")
-            .current_dir(&path::Path::new("../client"))
-            .arg("./node_modules/elm-static-html/index.js")
-            .arg("-f")
-            .arg("src/elm/Main.elm")
-            .output()
-            .expect("elm-static-html command failed to start")
-            .stdout;
-    }
-    fs::rename(
-        "../client/src/elm/Main.elm.bak",
-        "../client/src/elm/Main.elm",
-    )
-    .expect("file not renamed");
-
-    println!("stdout: {:?}", stdout);
-
-    String::from_utf8_lossy(&*stdout)
-        .lines()
-        .skip_while(|x| x.find(r#"id="content""#).is_none())
-        .collect()
 }
 
 fn render_post(post: Post) -> Box<dyn RenderBox> {
