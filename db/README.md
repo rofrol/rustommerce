@@ -16,6 +16,10 @@ Unpack zip and extracted `/path/to/psql/bin` to `PATH` env.
 
 You can run `./status.sh` to see db status.
 
+## http server in WSL2, PostgreSQL in Windows host
+
+I could not connect to database.
+
 ## Ubuntu in WSL2
 
 Haven't checked if it works.

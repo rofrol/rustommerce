@@ -16,3 +16,7 @@ $ sudo apt install build-essential
 ## Debugging
 
 `RUST_BACKTRACE=1 cargo run`
+
+## Compilation time
+
+Compilation time is faster in WSL2 than in git bash in Windows.
