@@ -175,7 +175,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Chaning to specific file, bc `strace ./target/debug/rustommerce` shown,
     // that dotenv searches up for .env till it reaches /
     // https://galenguyer.com/blog/2020/05/19/docker-rust-notpresent
-    let my_path = env::current_dir().and_then(|a| Ok(a.join("../.env")))?;
+    let my_path = env::current_dir().map(|a| a.join("../.env"))?;
     dotenv::from_path(my_path.as_path());
 
     env::set_var("RUST_LOG", "actix_web=info");
