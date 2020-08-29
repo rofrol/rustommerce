@@ -22,3 +22,14 @@ tinytemplate = "1.1.0"
 deadpool-postgres = "0.5.6"
 tokio-postgres = "0.5.5"
 derive_more = "0.99.9"
+
+[profile.dev]
+# disabling debug info to speed up dev builds
+# https://github.com/rust-gamedev/wg/issues/50#issuecomment-527160611
+# this is for disabling debugininfo only for dependencies
+# https://stackoverflow.com/questions/58627230/can-i-include-debug-information-only-for-my-code-without-packages
+# Testing procedure. Time before and after:
+# $ cargo clean && time cargo build
+# real    3m9.674s
+# real    3m45.498s
+debug = false
