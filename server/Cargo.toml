@@ -15,13 +15,14 @@ actix-web = "3.0.0-beta.3"
 actix-rt = "1.1.1"
 actix-files = "0.3.0-beta.1"
 env_logger = "0.7.1"
-typed-html = { git = "https://github.com/bodil/typed-html#4c13ecca" }
-typed-html-macros = { git = "https://github.com/bodil/typed-html#4c13ecca" }
+typed-html = { git = "https://github.com/bodil/typed-html", rev = "4c13ecca" }
+typed-html-macros = { git = "https://github.com/bodil/typed-html", rev = "4c13ecca" }
 futures = "0.3.5"
 tinytemplate = "1.1.0"
 deadpool-postgres = "0.5.6"
 tokio-postgres = "0.5.5"
 derive_more = "0.99.9"
+horrorshow = "0.8.3"
 
 [profile.dev]
 # disabling debug info to speed up dev builds

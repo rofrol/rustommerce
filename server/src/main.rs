@@ -1,3 +1,4 @@
+#![cfg(feature = "alloc")]
 #![recursion_limit = "256"]
 // http://stackoverflow.com/questions/25877285/how-to-disable-unused-code-warnings-in-rust
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
@@ -21,6 +22,13 @@ use tinytemplate::TinyTemplate;
 
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
+
+#[macro_use]
+extern crate horrorshow;
+
+use horrorshow::helper::doctype;
+use horrorshow::prelude::*;
+use horrorshow::{Raw, RenderBox, Template};
 
 static TEMPLATE: &str = "Hello {name}!";
 #[derive(Serialize)]
@@ -168,6 +176,52 @@ fn getStr() -> String {
         .collect()
 }
 
+fn render_post(post: Post) -> Box<dyn RenderBox> {
+    let Post { title, body, tags } = post;
+    box_html! {
+        article {
+            header(class="post-header") {
+                h1 : title;
+                ul {
+                    @ for tag in tags {
+                        li : tag
+                    }
+                }
+            }
+            section(class="post-body") : body;
+        }
+    }
+}
+
+fn render<I: Iterator<Item = Post>>(title: &str, posts: I) -> String {
+    (html! {
+        : Raw("<!DOCTYPE html>");
+        html {
+            head {
+                title : title
+            }
+            body {
+                main {
+                    header { h1 : title }
+                    section(id="posts") {
+                        @ for post in posts {
+                            : render_post(post)
+                        }
+                    }
+                }
+            }
+        }
+    })
+    .into_string()
+    .unwrap()
+}
+
+struct Post {
+    title: String,
+    tags: Vec<String>,
+    body: String,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Error: NotPresent
     // Chaning to specific file, bc `strace ./target/debug/rustommerce` shown,
@@ -206,6 +260,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rendered = tt.render("hello", &context)?;
     println!("{}", rendered);
+
+    let posts = vec![
+        Post {
+            title: String::from("First Post"),
+            tags: vec![String::from("first post")],
+            body: String::from("My Test Post"),
+        },
+        Post {
+            title: String::from("Second Post"),
+            tags: vec![],
+            body: String::from("My Second Test Post"),
+        },
+    ];
+    println!("{}", render("my blog", posts.into_iter()));
 
     let sys = actix_rt::System::new("app");
     HttpServer::new(move || {
