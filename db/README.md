@@ -14,6 +14,8 @@ Unpack zip and extracted `/path/to/psql/bin` to `PATH` env.
 ./populate.sh
 ```
 
+You can run `./status.sh` to see db status.
+
 ## Ubuntu in WSL2
 
 Haven't checked if it works.
