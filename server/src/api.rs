@@ -2,6 +2,19 @@
 // https://users.rust-lang.org/t/turning-off-compiler-warning-messages/4975/2
 #![allow(non_snake_case)]
 
+mod models {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct Product {
+        pub name: String,
+        pub description: String,
+        pub url: String,
+        pub main_image_url: String,
+        pub id: i32,
+    }
+}
+
 mod errors {
     use actix_web::{HttpResponse, ResponseError};
     use deadpool_postgres::PoolError;
@@ -24,9 +37,40 @@ mod errors {
                 MyError::PoolError(ref err) => {
                     HttpResponse::InternalServerError().body(err.to_string())
                 }
+                MyError::PGError(ref err) => {
+                    HttpResponse::InternalServerError().body(err.to_string())
+                }
                 _ => HttpResponse::InternalServerError().finish(),
             }
         }
+    }
+}
+
+mod db {
+    use super::errors::MyError;
+    use super::models::Product;
+    use deadpool_postgres::Client;
+
+    pub async fn get_products(client: &Client) -> Result<Vec<Product>, MyError> {
+        let mut products = Vec::new();
+
+        let _stmt = "SELECT id, name, description, url, main_image_url FROM products";
+        let stmt = client.prepare(&_stmt).await?;
+        for row in client.query(&stmt, &[]).await? {
+            let product = Product {
+                id: row.get(0),
+                name: row.get(1),
+                description: row.get(2),
+                url: row.get(3),
+                main_image_url: row.get(4),
+            };
+            // note: move occurs because `data_set` has type `Product`,
+            // which does not implement the `Copy` trait
+            println!("Found Product {}", &product.name);
+            products.push(product);
+        }
+        println!("products: {:?}", products);
+        Ok(products)
     }
 }
 
@@ -294,4 +338,18 @@ pub async fn data_sets_categories(db_pool: web::Data<Pool>) -> Result<HttpRespon
         categories.push(category);
     }
     Ok(HttpResponse::Ok().json(categories))
+}
+
+pub mod handlers {
+    use super::{db, errors::MyError};
+    use actix_web::{web, Error, HttpResponse};
+    use deadpool_postgres::{Client, Pool};
+
+    pub async fn get_products(db_pool: web::Data<Pool>) -> Result<HttpResponse, Error> {
+        let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
+
+        let products = db::get_products(&client).await?;
+
+        Ok(HttpResponse::Ok().json(products))
+    }
 }

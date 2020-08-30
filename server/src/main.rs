@@ -140,6 +140,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .data(pool.clone())
             .wrap(middleware::Logger::default())
             .service(web::resource("/template/{ssr}").route(web::get().to(template)))
+            .service(web::resource("/products").route(web::get().to(api::handlers::get_products)))
             .service(web::resource("/userInformation").route(web::get().to(api::user_information)))
             .service(web::resource("/dataSets").route(web::get().to(api::data_sets)))
             .service(web::resource("/dataSets/{url}").route(web::get().to(api::data_set)))

@@ -2,8 +2,22 @@ SET CLIENT_ENCODING TO UTF8;
 SET STANDARD_CONFORMING_STRINGS TO ON;
 BEGIN;
 
-DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS user_information;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS user_information CASCADE;
+DROP TABLE IF EXISTS data_sets_in_categories CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS data_sets CASCADE;
+
+create table products (
+  name varchar,
+  description varchar,
+  url varchar,
+  main_image_url varchar,
+  id serial primary key
+);
+
 create table user_information (
   "magicUrl" varchar,
   name varchar,
@@ -17,11 +31,6 @@ create table notifications (
   "userId" integer REFERENCES user_information ("userId"),
   id serial primary key
 );
-
-DROP TABLE IF EXISTS data_sets_in_categories;
-DROP TABLE IF EXISTS comments;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS data_sets;
 
 create table data_sets (
   name varchar,
@@ -63,6 +72,23 @@ create table comments (
   data_set_id integer REFERENCES data_sets (id),
   id serial primary key
 );
+
+
+insert into products values (
+  'Product 1',
+  'Description of Product 1',
+  'product1',
+  'product1.jpg'
+);
+
+insert into products (name, description, url, main_image_url, id) values (
+  'Product 2',
+  'Description of Product 2',
+  'product2',
+  'product2.jpg',
+  DEFAULT
+);
+
 
 -- works too:
 --insert into data_sets values ('Name of Data Set');
@@ -124,6 +150,7 @@ insert into comments values (
   1
 );
 
+select * from products;
 select * from data_sets;
 select * from user_information;
 select * from user_information as u join notifications as n on u."userId" = n."userId";
