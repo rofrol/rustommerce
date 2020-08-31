@@ -24,7 +24,7 @@ I could not connect to database.
 
 Haven't checked if it works.
 
-`sudo apt install postgresql postgresql-contrib`
+`sudo apt install postgresql`
 
 - https://help.ubuntu.com/community/PostgreSQL#Installation
 - https://skmcloughlin.github.io/configuring_postgresql_for_wsl2
