@@ -23,6 +23,10 @@ $ cp .env.example .env
 $ ./client/tools/build-dev.sh
 ```
 
+Based on https://12factor.net/config
+
+You will get `dist/js/env.js` which is loaded to elm through flags.
+
 Start server.
 
 Start db.
@@ -34,17 +38,6 @@ $ ./client/tools/browsersync.js
 ```
 
 Then navigate your browser to [http://localhost:8000](http://localhost:8000).
-
-## Configuration
-
-Based on https://12factor.net/config
-
-```bash
-cp .env.example .env
-./tools/generate-env.js
-```
-
-You will get `dist/js/env.js` which is loaded to elm through flags.
 
 ## Linter elm make - don't compile twice
 
