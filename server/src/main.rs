@@ -185,7 +185,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // https://users.rust-lang.org/t/boxing-errors-in-result-throws-type-mismatch/36692/2
     //.map_err(|e| e.into())
 
-    println!("Server running at {:?}", endpoint);
+    println!("Server running at http://{}", endpoint);
+    println!("Db test http://{}/api/dataSets", endpoint);
+    println!("Db test http://{}/api/dataSets/name-of-data-set", endpoint);
+    println!(
+        "Db test http://{}/api/dataSetsCategories/dataSets",
+        endpoint
+    );
     let _ = sys.run();
 
     Ok(())

@@ -174,7 +174,7 @@ struct Comment {
     date: String,
 }
 
-// test url: /dataSets/name-of-data-set
+// test url: /api/dataSets/name-of-data-set
 pub async fn data_set(
     url: web::Path<String>,
     db_pool: web::Data<Pool>,
@@ -228,7 +228,7 @@ struct DataSetShort {
     url: String,
 }
 
-// test url: /dataSetsCategories/dataSets
+// test url: /api/dataSetsCategories/dataSets
 pub async fn data_set_category(
     url: web::Path<String>,
     db_pool: web::Data<Pool>,
