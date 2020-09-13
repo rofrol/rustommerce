@@ -16,16 +16,14 @@ Unpack zip and extracted `/path/to/psql/bin` to `PATH` env.
 
 You can run `./status.sh` to see db status.
 
-## http server in WSL2, PostgreSQL in Windows host
-
-I could not connect to database.
-
-## Ubuntu in WSL2
-
-Haven't checked if it works.
+## Ubuntu
 
 `sudo apt install postgresql`
 
 - https://help.ubuntu.com/community/PostgreSQL#Installation
 - https://skmcloughlin.github.io/configuring_postgresql_for_wsl2
 - https://www.reddit.com/r/bashonubuntuonwindows/comments/glds15/how_to_use_postgres_with_wsl2/
+
+## Ubuntu WSL2
+
+http and PostgreSQL servers have to be run in WSL2.
