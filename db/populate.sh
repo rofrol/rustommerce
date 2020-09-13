@@ -5,4 +5,4 @@ cd $DIR
 
 export $(cat ${DIR}/../.env | xargs)
 
-psql -U ${DBUSER} -d ${DBNAME} -f populate.sql
+PGPASSWORD=${DBPASS} psql -U ${DBUSER} -d ${DBNAME} -f populate.sql
