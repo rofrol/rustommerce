@@ -18,7 +18,7 @@ You can run `./status.sh` to see db status.
 
 ## Ubuntu
 
-`sudo apt install postgresql`
+`sudo apt install postgresql -y`
 
 - https://help.ubuntu.com/community/PostgreSQL#Installation
 - https://skmcloughlin.github.io/configuring_postgresql_for_wsl2
