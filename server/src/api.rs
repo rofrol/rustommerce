@@ -23,6 +23,7 @@ mod errors {
 
     #[derive(Display, From, Debug)]
     pub enum MyError {
+        #[allow(dead_code)]
         NotFound,
         NonError,
         PGError(PGError),

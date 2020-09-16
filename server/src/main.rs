@@ -7,7 +7,6 @@ mod files;
 
 use serde_derive::Serialize;
 
-use dotenv;
 use std::env;
 
 use actix_web::{guard, middleware, web, App, Error as ActixError, HttpResponse, HttpServer};
@@ -53,7 +52,7 @@ async fn template(ssr: web::Path<bool>) -> Result<HttpResponse, ActixError> {
         },
     ];
 
-    let doc_str = render("my blog", posts.into_iter(), &s.to_owned());
+    let doc_str = render("my blog", posts.into_iter(), &s);
 
     Ok(HttpResponse::Ok().content_type("text/html").body(doc_str))
 }
